@@ -1,0 +1,4 @@
+successResponse:
+failResponse:
+cardResponse:
+bankResponse:
