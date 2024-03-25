@@ -4,6 +4,7 @@ import { PaperProvider } from "react-native-paper";
 import Navigation from "./src/navigation";
 import { AuthProvider } from "./src/context/AuthContext";
 import * as Notifications from "expo-notifications";
+
 Notifications.setNotificationHandler({
 	handleNotification: async () => ({
 		shouldShowAlert: true,
@@ -11,6 +12,7 @@ Notifications.setNotificationHandler({
 		shouldSetBadge: false,
 	}),
 });
+
 export default function App() {
 	const [fontsLoaded] = useFonts({
 		"Inter-Regular": require("./src/assets/font/Inter-Regular.ttf"),

@@ -1,5 +1,6 @@
 import {
 	Image,
+	Platform,
 	ScrollView,
 	StyleSheet,
 	Text,
@@ -8,14 +9,10 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { Sizes } from "../../../utils/theme";
-import {
-	Button,
-	Divider,
-	IconButton,
-	RadioButton,
-} from "react-native-paper";
-import InputText from "../../../components/Input/InputText";
+import { Button, Divider, IconButton, RadioButton } from "react-native-paper";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import RNDateTimePicker from "@react-native-community/datetimepicker";
+
 import moment from "moment";
 const NewBooking = ({ navigation }) => {
 	const [details, setDetails] = useState({
@@ -23,26 +20,13 @@ const NewBooking = ({ navigation }) => {
 		bathrooms: "1",
 	});
 	const [extras, setExtras] = useState([]);
-	const [date, setDate] = useState(new Date());
-	const [mode, setMode] = useState("date");
+	const [time, setTime] = useState(new Date());
 	const [show, setShow] = useState(false);
-	const onChange = (event, selectedDate) => {
-		const currentDate = selectedDate;
-		setShow(false);
-		setDate(currentDate);
-	};
-	const showMode = (currentMode) => {
+	const handleTimeChange = (event, selectedDate) => {
 		if (Platform.OS === "android") {
-			setShow(true);
-			// for iOS, add a button that closes the picker
+			setShow(false);
 		}
-		setMode(currentMode);
-	};
-	const showDatepicker = () => {
-		showMode("date");
-	};
-	const showTimepicker = () => {
-		showMode("time");
+		setTime(selectedDate);
 	};
 	const handleExtras = (name) => {
 		if (extras.includes(name)) {
@@ -52,18 +36,14 @@ const NewBooking = ({ navigation }) => {
 		}
 	};
 	const handleNext = async () => {
-		if (
-			details.bedrooms === "" ||
-			details.bathrooms === "" ||
-			date === ""
-		) {
+		if (details.bedrooms === "" || details.bathrooms === "" || time === "") {
 			alert("Please fill required fields");
 			return;
 		}
 		navigation.navigate("BookingPlace", {
 			details,
 			extras,
-			date: `${date}`,
+			date: `${time}`,
 		});
 	};
 	return (
@@ -102,11 +82,10 @@ const NewBooking = ({ navigation }) => {
 									size={40}
 									icon={"minus-box"}
 									onPress={() => {
-										if (details.bedrooms > 1) {
+										if (details.bedrooms > 0) {
 											setDetails({
 												...details,
-												bedrooms:
-													parseInt(details.bedrooms) - 1,
+												bedrooms: parseInt(details.bedrooms) - 1,
 											});
 										}
 									}}
@@ -127,8 +106,7 @@ const NewBooking = ({ navigation }) => {
 										if (details.bedrooms < 10) {
 											setDetails({
 												...details,
-												bedrooms:
-													parseInt(details.bedrooms) + 1,
+												bedrooms: parseInt(details.bedrooms) + 1,
 											});
 										}
 									}}
@@ -157,11 +135,10 @@ const NewBooking = ({ navigation }) => {
 									size={40}
 									icon={"minus-box"}
 									onPress={() => {
-										if (details.bathrooms > 1) {
+										if (details.bathrooms > 0) {
 											setDetails({
 												...details,
-												bathrooms:
-													parseInt(details.bathrooms) - 1,
+												bathrooms: parseInt(details.bathrooms) - 1,
 											});
 										}
 									}}
@@ -182,8 +159,7 @@ const NewBooking = ({ navigation }) => {
 										if (details.bathrooms < 10) {
 											setDetails({
 												...details,
-												bathrooms:
-													parseInt(details.bathrooms) + 1,
+												bathrooms: parseInt(details.bathrooms) + 1,
 											});
 										}
 									}}
@@ -209,9 +185,7 @@ const NewBooking = ({ navigation }) => {
 							marginVertical: 30,
 						}}
 					>
-						<TouchableOpacity
-							onPress={() => handleExtras("Laundry")}
-						>
+						<TouchableOpacity onPress={() => handleExtras("Laundry")}>
 							<View
 								style={
 									extras.includes("Laundry")
@@ -222,9 +196,7 @@ const NewBooking = ({ navigation }) => {
 										: { border: "none" }
 								}
 							>
-								<Image
-									source={require("../../../assets/basket.png")}
-								/>
+								<Image source={require("../../../assets/basket.png")} />
 								<Text
 									style={{
 										fontWeight: "400",
@@ -236,9 +208,34 @@ const NewBooking = ({ navigation }) => {
 								</Text>
 							</View>
 						</TouchableOpacity>
-						<TouchableOpacity
-							onPress={() => handleExtras("Ironing")}
-						>
+						<TouchableOpacity onPress={() => handleExtras("Bin")}>
+							<View
+								style={[
+									extras.includes("Bin")
+										? {
+												borderBottomColor: "#000000",
+												borderBottomWidth: 5,
+										  }
+										: { border: "none" },
+									{ alignItems: "center" },
+								]}
+							>
+								<Image
+									source={require("../../../assets/bin.png")}
+									style={{ width: 50, height: 50 }}
+								/>
+								<Text
+									style={{
+										fontWeight: "400",
+										fontSize: 15,
+										marginVertical: 5,
+									}}
+								>
+									Bin
+								</Text>
+							</View>
+						</TouchableOpacity>
+						<TouchableOpacity onPress={() => handleExtras("Ironing")}>
 							<View
 								style={
 									extras.includes("Ironing")
@@ -249,9 +246,7 @@ const NewBooking = ({ navigation }) => {
 										: { border: "none" }
 								}
 							>
-								<Image
-									source={require("../../../assets/iron.png")}
-								/>
+								<Image source={require("../../../assets/iron.png")} />
 								<Text
 									style={{
 										fontWeight: "400",
@@ -281,37 +276,32 @@ const NewBooking = ({ navigation }) => {
 									marginTop: 20,
 									borderRadius: 0,
 								}}
-								onPress={showDatepicker}
+								onPress={() => setShow(true)}
 								buttonColor="#000000"
 							>
 								Select Date
 							</Button>
-							<Button
-								mode="contained"
-								style={{
-									marginVertical: 10,
-									borderRadius: 0,
-								}}
-								onPress={showTimepicker}
-								buttonColor="#000000"
-							>
-								Select Time
-							</Button>
-							<Text>
-								Selected Date & Time :{" "}
-								{moment(date).format(
-									"MMMM DD YYYY, h:mm:ss a"
-								)}
+							<Text style={{ marginTop: 10 }}>
+								Selected Date : {moment(time).format("MMMM DD YYYY")}
 							</Text>
 							{show && (
-								<DateTimePicker
-									testID="dateTimePicker"
-									value={date}
-									mode={mode}
-									is24Hour={true}
-									minimumDate={moment.now()}
-									onChange={onChange}
-								/>
+								<>
+									<RNDateTimePicker
+										mode="date"
+										display="spinner"
+										value={time}
+										onChange={handleTimeChange}
+									/>
+									{Platform.OS === "ios" && (
+										<Button
+											textColor="red"
+											labelStyle={{ fontSize: 20 }}
+											onPress={() => setShow(false)}
+										>
+											Close Picker
+										</Button>
+									)}
+								</>
 							)}
 						</View>
 					</View>
@@ -323,26 +313,27 @@ const NewBooking = ({ navigation }) => {
 							borderColor: "#B7B7B7",
 						}}
 					/>
-					<Button
-						mode="contained"
-						buttonColor="#000000"
-						textColor="#ffffff"
-						style={{
-							borderRadius: 0,
-							width: "100%",
-							height: 55,
-							display: "flex",
-							justifyContent: "center",
-							alignItems: "center",
-						}}
-						contentStyle={{
-							flexDirection: "row-reverse",
-						}}
-						icon={"arrow-right"}
-						onPress={handleNext}
-					>
-						Next
-					</Button>
+					<TouchableOpacity onPress={handleNext}>
+						<Button
+							mode="contained"
+							buttonColor="#000000"
+							textColor="#ffffff"
+							style={{
+								borderRadius: 0,
+								width: "100%",
+								height: 55,
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+							}}
+							contentStyle={{
+								flexDirection: "row-reverse",
+							}}
+							icon={"arrow-right"}
+						>
+							Next
+						</Button>
+					</TouchableOpacity>
 				</ScrollView>
 			</View>
 		</View>

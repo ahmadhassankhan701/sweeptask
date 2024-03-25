@@ -1,4 +1,11 @@
-import { StyleSheet, View, Text, TouchableOpacity, Image } from "react-native";
+import {
+	StyleSheet,
+	View,
+	Text,
+	TouchableOpacity,
+	Image,
+	Platform,
+} from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { Sizes } from "../../utils/theme";
 import Footer from "../../components/Footer";
@@ -14,7 +21,7 @@ import { AuthContext } from "../../context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { arrayUnion, doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "../../../firebase";
-import axios from "axios";
+import moment from "moment";
 
 const Account = ({ navigation }) => {
 	const { state, setState } = useContext(AuthContext);
@@ -24,8 +31,7 @@ const Account = ({ navigation }) => {
 	const [promoDetails, setPromoDetails] = useState({
 		promo: "",
 		promoDate: 0,
-		promoMonth: 0,
-		promoYear: 0,
+		promoValue: 0,
 	});
 	const showModal = () => setVisible(true);
 	const hideModal = () => setVisible(false);
@@ -41,23 +47,21 @@ const Account = ({ navigation }) => {
 	const checkForPromo = async () => {
 		try {
 			setActionLoading(true);
-			const docRef = doc(db, "Pricing", state.user.suburb);
+			const docRef = doc(db, "Pricing", state.user.suburbId);
 			const docSnap = await getDoc(docRef);
-			if (docSnap.exists() && docSnap.data().promo !== "") {
-				const promoRef = doc(db, "Promo", docSnap.data().promo);
+			if (docSnap.exists() && docSnap.data().promo) {
+				const promoRef = doc(db, "Promo", docSnap.data().promo.promo);
 				const promoSnap = await getDoc(promoRef);
 				if (promoSnap.exists() && promoSnap.data().users) {
 					const usersInPromo = promoSnap.data().users;
 					const userExists = usersInPromo.includes(state.user.uid);
 					if (!userExists) {
-						const { promo, promoDate, promoMonth, promoYear } =
-							promoSnap.data();
+						const { promo, promoDate, promoValue } = promoSnap.data();
 						setPromoDetails({
 							...promoDetails,
 							promo,
 							promoDate,
-							promoMonth,
-							promoYear,
+							promoValue,
 						});
 						setPromoVisible(true);
 					}
@@ -86,7 +90,7 @@ const Account = ({ navigation }) => {
 			alert("Promo activated successfully");
 		} catch (error) {
 			setActionLoading(false);
-			alert("Something went wrong");
+			alert(error.message);
 			console.log(error);
 		}
 	};
@@ -100,15 +104,7 @@ const Account = ({ navigation }) => {
 		}
 	};
 	return (
-		<View
-			style={{
-				flex: 1,
-				justifyContent: "space-between",
-				alignItems: "center",
-				height: Sizes.height,
-				marginTop: 50,
-			}}
-		>
+		<View style={styles.container}>
 			{actionLoading && (
 				<View
 					style={{
@@ -127,8 +123,8 @@ const Account = ({ navigation }) => {
 						source={require("../../assets/loader.gif")}
 						style={{
 							alignSelf: "center",
-							width: 80,
-							height: 80,
+							width: 250,
+							height: 200,
 						}}
 					/>
 				</View>
@@ -168,7 +164,7 @@ const Account = ({ navigation }) => {
 				</Modal>
 			</Portal>
 			<View>
-				<View style={styles.wrapper}>
+				<View style={[styles.wrapper, { marginTop: 50 }]}>
 					<TouchableOpacity onPress={() => navigation.navigate("Profile")}>
 						<View
 							style={{
@@ -221,17 +217,20 @@ const Account = ({ navigation }) => {
 							>
 								<Text
 									style={{
-										color: "#fff",
+										color: "red",
 										textAlign: "center",
+										fontSize: 20,
+										fontWeight: "700",
 									}}
 								>
 									Promo Alert
 								</Text>
-								<IconButton iconColor="#fff" icon={"alert"} />
+								<IconButton iconColor="red" icon={"alert"} />
 							</View>
 							<Text
 								style={{
 									color: "#fff",
+									fontSize: 16,
 								}}
 							>
 								Hurray! There is promo discount in your area.
@@ -239,11 +238,32 @@ const Account = ({ navigation }) => {
 							<Text
 								style={{
 									color: "#fff",
+									fontWeight: "700",
+									marginTop: 10,
 								}}
 							>
-								Promo code is {promoDetails.promo} and valid till{" "}
-								{promoDetails.promoDate}, {promoDetails.promoMonth},{" "}
-								{promoDetails.promoYear}.
+								Promo code is: {promoDetails.promo}
+							</Text>
+							<Text
+								style={{
+									color: "#fff",
+									fontWeight: "700",
+									marginTop: 10,
+								}}
+							>
+								Valid till:{" "}
+								{moment(promoDetails.promoDate.seconds * 1000).format(
+									"DD/MM/YYYY"
+								)}
+							</Text>
+							<Text
+								style={{
+									color: "#fff",
+									fontWeight: "700",
+									marginTop: 10,
+								}}
+							>
+								Discount: {promoDetails.promoValue}
 							</Text>
 							<Button
 								mode="contained"
@@ -265,17 +285,17 @@ const Account = ({ navigation }) => {
 						<List.Item
 							title="Payments"
 							left={() => <List.Icon icon="wallet-outline" />}
-							onPress={() => navigation.navigate("Payment")}
+							onPress={() => navigation.navigate("Pay")}
 						/>
 						<List.Item
 							title="Messages"
 							left={() => <List.Icon icon="chat-processing-outline" />}
-							onPress={() => navigation.navigate("Chat")}
+							onPress={() => alert("Coming Soon")}
 						/>
 						<List.Item
 							title="Help"
 							left={() => <List.Icon icon="help-circle-outline" />}
-							onPress={handlePayStack}
+							onPress={() => alert("Coming Soon")}
 						/>
 						<List.Item
 							title="Log out"
@@ -285,7 +305,9 @@ const Account = ({ navigation }) => {
 					</List.Section>
 				</View>
 			</View>
-			<Footer />
+			<View style={styles.footer}>
+				<Footer />
+			</View>
 		</View>
 	);
 };
@@ -293,6 +315,17 @@ const Account = ({ navigation }) => {
 export default Account;
 
 const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		justifyContent: "space-between",
+		alignItems: "center",
+		height: Sizes.height,
+	},
+	footer: {
+		height: 40,
+		marginBottom: Platform.OS === "ios" ? 20 : 0,
+		width: "100%",
+	},
 	title: {
 		fontFamily: "Inter-SemiBold",
 		fontStyle: "normal",

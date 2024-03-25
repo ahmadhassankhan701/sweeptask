@@ -38,10 +38,10 @@ const Register = ({ navigation }) => {
 		password: "",
 		city: "",
 		suburb: "",
+		suburbId: "",
 	});
 	const [errors, setErrors] = useState({
 		name: "",
-		code: "+27",
 		phone: "",
 		email: "",
 		password: "",
@@ -61,7 +61,8 @@ const Register = ({ navigation }) => {
 			setDetails({ ...details, city: value });
 		}
 		if (name === "suburb") {
-			setDetails({ ...details, suburb: value });
+			let uniqueSuburb = value.toLowerCase().replace(/\s/g, "");
+			setDetails({ ...details, suburbId: uniqueSuburb, suburb: value });
 		}
 		if (name === "phone") {
 			setDetails({ ...details, phone: value });
@@ -86,10 +87,10 @@ const Register = ({ navigation }) => {
 	};
 	const handlePassword = async (val) => {
 		setDetails({ ...details, password: val });
-		if (val.length < 6 || val.length > 14) {
+		if (val.length < 8 || val.length > 20) {
 			setErrors({
 				...errors,
-				password: "Password should be 6-14 characters",
+				password: "Password should be 8-20 characters",
 			});
 		} else {
 			setErrors({
@@ -127,57 +128,29 @@ const Register = ({ navigation }) => {
 			return;
 		}
 		var emptyError =
-			errors.name == "" &&
-			errors.email == "" &&
-			errors.password == "";
+			errors.name == "" && errors.email == "" && errors.password == "";
 		if (emptyError == false) {
 			alert("Please clear the errors");
 			return;
 		}
 		setLoading(true);
-		alreadyExists();
-		await createUserWithEmailAndPassword(
-			auth,
-			details.email,
-			details.password
-		)
+		await createUserWithEmailAndPassword(auth, details.email, details.password)
 			.then((userCredential) => {
-				const users = userCredential.user;
 				updateProfile(auth.currentUser, {
 					displayName: details.name,
 				});
-				handleMailVerification(users);
+				handleMailVerification(userCredential.user);
 			})
 			.catch((error) => {
+				setLoading(false);
 				if (error.code === "auth/email-already-in-use") {
-					alert(
-						"Email already registered. Try using different email"
-					);
-					return false;
+					alert("Email already registered. Try using different email");
 				} else {
 					// Handle other errors during user creation
-					const errorMessage = error.message;
-					console.error(
-						"Error creating user:",
-						errorMessage
-					);
-					alert("Error creating user:", errorMessage);
+					alert("Error creating user:", error.message);
 				}
-				setLoading(false);
+				console.error(error);
 			});
-	};
-	const alreadyExists = async () => {
-		const userRef = collection(db, "Users");
-		const q = query(
-			userRef,
-			where("email", "==", details.email)
-		);
-		const querySnapshot = await getDocs(q);
-		if (querySnapshot.size > 0) {
-			setLoading(false);
-			alert("Email already in use.Please use another!");
-			return false;
-		}
 	};
 	const handleMailVerification = async (users) => {
 		try {
@@ -189,14 +162,13 @@ const Register = ({ navigation }) => {
 				phone: details.phone,
 				city: details.city,
 				suburb: details.suburb,
+				suburbId: details.suburbId,
 				image: "",
-				createdAt: serverTimestamp(),
+				createdAt: new Date(),
 			};
 			await setDoc(doc(db, "Users", users.uid), user);
 			setLoading(false);
-			alert(
-				"Verification mail sent. Once verified you can login!"
-			);
+			alert("Verification mail sent. Once verified you can login!");
 			navigation.navigate("Login");
 		} catch (e) {
 			setLoading(false);
@@ -205,62 +177,58 @@ const Register = ({ navigation }) => {
 		}
 	};
 	return (
-		<View style={styles.container}>
-			{loading && (
-				<View
-					style={{
-						position: "absolute",
-						backgroundColor: "#000000",
-						opacity: 0.7,
-						zIndex: 999,
-						width: "100%",
-						height: "100%",
-						display: "flex",
-						justifyContent: "center",
-						alignItems: "center",
-					}}
-				>
-					<Image
-						source={require("../assets/loader.gif")}
-						style={{
-							alignSelf: "center",
-							width: 80,
-							height: 80,
-						}}
-					/>
-				</View>
-			)}
-			<View style={styles.wrapper}>
-				<View
-					style={{
-						height: "20%",
-						display: "flex",
-						justifyContent: "flex-end",
-						alignItems: "center",
-					}}
-				>
-					<Image
-						source={require("../assets/splash.png")}
-						alt="logo"
-						style={{
-							width: 192,
-							height: 44,
-							marginBottom: 30,
-						}}
-					/>
-				</View>
-				<View
-					style={{
-						height: "80%",
-					}}
-				>
-					<KeyboardAvoidingView
-						behavior={
-							Platform.OS === "ios" ? "padding" : "height"
-						}
-					>
-						<ScrollView
-							showsVerticalScrollIndicator={false}
+		<KeyboardAvoidingView
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
+		>
+			<ScrollView showsVerticalScrollIndicator={false}>
+				<View style={styles.container}>
+					{loading && (
+						<View
+							style={{
+								position: "absolute",
+								backgroundColor: "#000000",
+								opacity: 0.7,
+								zIndex: 999,
+								width: "100%",
+								height: "100%",
+								display: "flex",
+								justifyContent: "center",
+								alignItems: "center",
+							}}
+						>
+							<Image
+								source={require("../assets/loader.gif")}
+								style={{
+									alignSelf: "center",
+									width: 250,
+									height: 200,
+								}}
+							/>
+						</View>
+					)}
+					<View style={styles.wrapper}>
+						<View
+							style={{
+								height: "20%",
+								display: "flex",
+								justifyContent: "flex-end",
+								alignItems: "center",
+							}}
+						>
+							<Image
+								source={require("../assets/splash.png")}
+								alt="logo"
+								style={{
+									width: 192,
+									height: 44,
+									marginBottom: 30,
+								}}
+							/>
+						</View>
+						<View
+							style={{
+								height: "80%",
+							}}
 						>
 							<View>
 								<InputText
@@ -315,9 +283,7 @@ const Register = ({ navigation }) => {
 										outlineColor="#000000"
 										activeOutlineColor={"#000000"}
 										selectionColor={"gray"}
-										onChangeText={(text) =>
-											handleChange("phone", text)
-										}
+										onChangeText={(text) => handleChange("phone", text)}
 										value={details.phone}
 									/>
 								</View>
@@ -352,9 +318,7 @@ const Register = ({ navigation }) => {
 										outlineColor="#000000"
 										activeOutlineColor={"#000000"}
 										selectionColor={"gray"}
-										onChangeText={(text) =>
-											handleChange("city", text)
-										}
+										onChangeText={(text) => handleChange("city", text)}
 										value={details.city}
 									/>
 									<TextInput
@@ -369,9 +333,7 @@ const Register = ({ navigation }) => {
 										outlineColor="#000000"
 										activeOutlineColor={"#000000"}
 										selectionColor={"gray"}
-										onChangeText={(text) =>
-											handleChange("suburb", text)
-										}
+										onChangeText={(text) => handleChange("suburb", text)}
 										value={details.suburb}
 									/>
 								</View>
@@ -430,21 +392,17 @@ const Register = ({ navigation }) => {
 								>
 									<Text>Already have an account? </Text>
 									<TouchableOpacity
-										onPress={() =>
-											navigation.navigate("Login")
-										}
+										onPress={() => navigation.navigate("Login")}
 									>
-										<Text style={{ fontWeight: "800" }}>
-											Sign in
-										</Text>
+										<Text style={{ fontWeight: "800" }}>Sign in</Text>
 									</TouchableOpacity>
 								</View>
 							</View>
-						</ScrollView>
-					</KeyboardAvoidingView>
+						</View>
+					</View>
 				</View>
-			</View>
-		</View>
+			</ScrollView>
+		</KeyboardAvoidingView>
 	);
 };
 

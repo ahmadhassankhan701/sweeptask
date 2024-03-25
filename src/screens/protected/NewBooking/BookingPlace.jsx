@@ -1,11 +1,18 @@
-import { StyleSheet, View } from "react-native";
+import {
+	Image,
+	KeyboardAvoidingView,
+	Platform,
+	StyleSheet,
+	View,
+} from "react-native";
 import React from "react";
 import { Sizes } from "../../../utils/theme";
 import { useState } from "react";
-import DonorMap from "../../../components/Map/index";
 import { Button } from "react-native-paper";
+import CustomerMap from "../../../components/Map/index";
 const BookingPlace = ({ route, navigation }) => {
 	const { details, extras, date } = route.params;
+	const [loading, setLoading] = useState(false);
 	const [location, setLocation] = useState({
 		city: "",
 		address: "",
@@ -38,12 +45,40 @@ const BookingPlace = ({ route, navigation }) => {
 		});
 	};
 	return (
-		<View style={styles.container}>
+		<KeyboardAvoidingView
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
+			style={styles.container}
+		>
 			{/* <Text>{JSON.stringify(location, null, 4)}</Text> */}
+			{loading && (
+				<View
+					style={{
+						position: "absolute",
+						backgroundColor: "#000000",
+						opacity: 0.7,
+						zIndex: 999,
+						width: "100%",
+						height: "100%",
+						display: "flex",
+						justifyContent: "center",
+						alignItems: "center",
+					}}
+				>
+					<Image
+						source={require("../../../assets/loader.gif")}
+						style={{
+							alignSelf: "center",
+							width: 250,
+							height: 200,
+						}}
+					/>
+				</View>
+			)}
 			<View style={styles.cover}>
-				<DonorMap
+				<CustomerMap
 					location={location}
 					handleChange={handleChange}
+					setLoading={setLoading}
 				/>
 			</View>
 			<View
@@ -77,7 +112,7 @@ const BookingPlace = ({ route, navigation }) => {
 					Next
 				</Button>
 			</View>
-		</View>
+		</KeyboardAvoidingView>
 	);
 };
 

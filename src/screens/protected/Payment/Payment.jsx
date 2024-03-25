@@ -1,6 +1,16 @@
-import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
+import {
+	StyleSheet,
+	Text,
+	View,
+	Image,
+	TouchableOpacity,
+	KeyboardAvoidingView,
+	Platform,
+	ScrollView,
+	Modal,
+} from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Button, RadioButton } from "react-native-paper";
+import { ActivityIndicator, Button, IconButton } from "react-native-paper";
 import InputText from "../../../components/Input/InputText";
 import { Sizes } from "../../../utils/theme";
 import {
@@ -13,29 +23,58 @@ import {
 import { db } from "../../../../firebase";
 import { AuthContext } from "../../../context/AuthContext";
 import { sendNotification } from "../../../utils/Helpers/NotifyConfig";
-import { Paystack, paystackProps } from "react-native-paystack-webview";
-// import nanoid from "nanoid";
 import { LinearGradient } from "expo-linear-gradient";
-import axios from "axios";
+// import PaystackForm from "../../../components/Form/PaystackForm";
+import { WebView } from "react-native-webview";
+import {
+	createCheckout,
+	createReCheckout,
+	verifyTransaction,
+} from "../../../utils/Helpers/PayFunc";
+import queryString from "query-string";
 const Payment = ({ route, navigation }) => {
 	const { cost, commission, docId, pro_token } = route.params;
 	const { state } = useContext(AuthContext);
-	const [choice, setChoice] = useState("visa");
+	const [choice, setChoice] = useState("cash");
 	const [totalCost, setTotalCost] = useState(cost);
 	const [promoDetails, setPromoDetails] = useState(null);
+	const [cards, setCards] = useState(null);
 	const [promo, setPromo] = useState("");
+	const [authCode, setAuthCode] = useState("");
+	const [payEmail, setPayEmail] = useState("");
 	const [appliedPromo, setAppliedPromo] = useState("");
 	const [actionLoading, setActionLoading] = useState(false);
 	const [loading, setLoading] = useState(false);
-
-	const paystackWebViewRef = useRef(paystackProps.PayStackRef);
-
+	const [checkoutUrl, setCheckoutUrl] = useState("");
+	const webViewRef = useRef(null);
+	const callbackUrl = "https://example.com";
 	useEffect(() => {
-		state && state.user && getPromoDetails();
+		if (state && state.user) {
+			getPromoDetails();
+			getCardDetails();
+		}
 	}, [state && state.user]);
+	const getCardDetails = async () => {
+		setLoading(true);
+		const docRef = doc(db, "Accounts", state.user.uid);
+		getDoc(docRef)
+			.then((docSnap) => {
+				if (docSnap.exists() && docSnap.data().cards) {
+					const cards = docSnap.data().cards;
+					if (cards && cards.length > 0) {
+						setCards(cards);
+					}
+				}
+				setLoading(false);
+			})
+			.catch((err) => {
+				console.log(err);
+				setLoading(false);
+			});
+	};
 	const getPromoDetails = async () => {
 		setLoading(true);
-		const docRef = doc(db, `Users`, state.user.uid);
+		const docRef = doc(db, "Users", state.user.uid);
 		getDoc(docRef)
 			.then((docSnap) => {
 				if (docSnap.exists() && docSnap.data().promo) {
@@ -49,7 +88,12 @@ const Payment = ({ route, navigation }) => {
 			});
 	};
 	const handleChange = (name, value) => {
-		setPromo(value);
+		if (name === "promo") {
+			setPromo(value);
+		}
+		if (name === "payEmail") {
+			setPayEmail(value);
+		}
 	};
 	const handlePromo = () => {
 		if (promo === "") {
@@ -60,22 +104,20 @@ const Payment = ({ route, navigation }) => {
 			const calcCost = cost - cost * (parseInt(promoDetails.promoValue) / 100);
 			setTotalCost(calcCost);
 			setPromoDetails(null);
+			setAppliedPromo(promo);
 			alert("Promo code applied");
 		} else {
 			alert("No such promo code");
 		}
 	};
-	const generateRef = (length) => {
-		var a =
-			"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890".split(
-				""
-			);
-		var b = [];
-		for (var i = 0; i < length; i++) {
-			var j = (Math.random() * (a.length - 1)).toFixed(0);
-			b[i] = a[j];
+	const handleMakeBooking = () => {
+		if (choice === "cash") {
+			handleCashBooking();
+		} else if (choice === "visa") {
+			handleReusable(authCode);
+		} else {
+			handlePaystackPayment();
 		}
-		return b.join("");
 	};
 	const handleCashBooking = async () => {
 		const payData = {
@@ -84,27 +126,42 @@ const Payment = ({ route, navigation }) => {
 			discountedAmount: totalCost,
 			choice: choice,
 			appliedPromo: appliedPromo,
-			customerPaid: false,
 		};
-		const payDataRecord = {
-			amount: cost,
-			commission,
-			discountedAmount: totalCost,
-			choice: choice,
-			appliedPromo: appliedPromo,
-			customerPaid: false,
-			uid: state.user.uid,
-			docId: docId,
-		};
+		handleDataSaving(payData);
+	};
+	const handleDataSaving = async (payData, cardData) => {
 		const updateData = { status: "confirmed", payData };
 		const userRef = doc(db, `Users`, state.user.uid);
+		const userCardRef = doc(db, `Accounts`, state.user.uid);
 		const docRef = doc(db, `Bookings`, docId);
-		const payRef = doc(db, "Payments", docId);
 		try {
 			setActionLoading(true);
+			if (choice === "new") {
+				const docSnap = await getDoc(userCardRef);
+				if (docSnap.exists()) {
+					const cards = docSnap.data().cards;
+					if (cards && cards.length > 0) {
+						const cardIndex = cards.findIndex(
+							(card) => card.authorization_code === cardData.authorization_code
+						);
+						if (cardIndex === -1) {
+							await updateDoc(userCardRef, {
+								cards: [...cards, cardData],
+							});
+						}
+					} else {
+						await updateDoc(userCardRef, {
+							cards: [cardData],
+						});
+					}
+				} else {
+					await setDoc(userCardRef, {
+						cards: [cardData],
+					});
+				}
+			}
 			await updateDoc(docRef, updateData);
-			await setDoc(payRef, payDataRecord);
-			if (appliedPromo) {
+			if (appliedPromo !== "") {
 				await updateDoc(userRef, {
 					promo: deleteField(),
 				});
@@ -115,15 +172,110 @@ const Payment = ({ route, navigation }) => {
 				"Hurray!!! Customer has confirmed cleaning request"
 			);
 			setActionLoading(false);
-			navigation.navigate("Booking");
+			navigation.navigate("Success", {
+				title: "Payment Successful",
+				desc: "Congratulations! You have confimred the booking. Professional will be informed. Happy cleaning",
+				to: "Booking",
+			});
 		} catch (error) {
 			setActionLoading(false);
 			console.log(error);
 			alert("Something went wrong");
 		}
 	};
+	const handleReusable = async (auth_code) => {
+		if (payEmail === "") {
+			alert("Please enter billing email");
+			return;
+		}
+		try {
+			const data = await createReCheckout(
+				payEmail,
+				totalCost,
+				"ZAR",
+				auth_code
+			);
+			if (data && data.authorization) {
+				const payData = {
+					id: data.id,
+					reference: data.reference,
+					amount: cost,
+					commission,
+					discountedAmount: totalCost,
+					choice: choice,
+					appliedPromo: appliedPromo,
+				};
+				handleDataSaving(payData);
+			} else {
+				alert("Transaction could not be placed. Try again!!!");
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	};
+	const handlePaystackPayment = async () => {
+		if (payEmail === "") {
+			alert("Please enter billing email");
+			return;
+		}
+		try {
+			const data = await createCheckout(
+				payEmail,
+				totalCost,
+				"ZAR",
+				callbackUrl
+			);
+			if (data && data.authorization_url) {
+				setCheckoutUrl(data.authorization_url);
+			} else {
+				alert("Could not create checkout");
+			}
+		} catch (error) {
+			console.log(error);
+		}
+	};
+	const onUrlChange = (webviewState) => {
+		const { url } = webviewState;
+
+		if (!url) return;
+		if (url.includes("https://standard.paystack.co/close")) {
+			setCheckoutUrl("");
+			return;
+		}
+		if (url.includes(callbackUrl)) {
+			const urlValues = queryString.parseUrl(url);
+			if (urlValues.query && urlValues.query.reference) {
+				onReturnPress(urlValues.query.reference);
+			} else {
+				alert("Payment could not be processed");
+			}
+			setCheckoutUrl("");
+		}
+	};
+	const onReturnPress = async (reference) => {
+		const data = await verifyTransaction(reference);
+		if (data && data.authorization) {
+			const cardData = data.authorization;
+			cardData.email = data.customer.email;
+			const payData = {
+				id: data.id,
+				reference: data.reference,
+				amount: cost,
+				commission,
+				discountedAmount: totalCost,
+				choice: choice,
+				appliedPromo: appliedPromo,
+			};
+			handleDataSaving(payData, cardData);
+		} else {
+			alert("Transaction could not be verified");
+		}
+	};
 	return (
-		<View style={styles.container}>
+		<KeyboardAvoidingView
+			behavior={Platform.OS === "ios" ? "padding" : "height"}
+			style={{ flex: 1 }}
+		>
 			{actionLoading && (
 				<View
 					style={{
@@ -142,188 +294,275 @@ const Payment = ({ route, navigation }) => {
 						source={require("../../../assets/loader.gif")}
 						style={{
 							alignSelf: "center",
-							width: 80,
-							height: 80,
+							width: 250,
+							height: 200,
 						}}
 					/>
 				</View>
 			)}
-			{loading ? (
-				<ActivityIndicator size={50} style={{ marginTop: 50 }} />
-			) : (
-				<View style={styles.wrapper}>
-					<Text style={styles.title}>Payment details</Text>
-					<View>
-						<RadioButton.Group
-							onValueChange={(newValue) => setChoice(newValue)}
-							value={choice}
-						>
-							<View
-								style={{
-									display: "flex",
-									flexDirection: "row",
-									alignItems: "center",
-									justifyContent: "space-between",
-									marginTop: 20,
-								}}
-							>
-								<View
-									style={{
-										display: "flex",
-										flexDirection: "row",
-										gap: 10,
-										justifyContent: "center",
-										alignItems: "center",
-									}}
-								>
-									<Image source={require("../../../assets/visa.png")} />
-									<Text
-										style={{
-											fontWeight: "600",
-											fontSize: 20,
-										}}
-									>
-										....
-									</Text>
-									<Text>1967</Text>
-								</View>
-								<RadioButton value="visa" color="#000000" />
-							</View>
-							<View
-								style={{
-									display: "flex",
-									flexDirection: "row",
-									alignItems: "center",
-									justifyContent: "space-between",
-									marginTop: 10,
-								}}
-							>
-								<View
-									style={{
-										display: "flex",
-										flexDirection: "row",
-										gap: 10,
-										justifyContent: "center",
-										alignItems: "center",
-									}}
-								>
-									<Image source={require("../../../assets/cash.png")} />
-									<Text>Cash</Text>
-								</View>
-								<RadioButton value="cash" color="#000000" />
-							</View>
-						</RadioButton.Group>
-					</View>
+			<ScrollView>
+				<View style={styles.container}>
+					{/* <Text>{JSON.stringify(state, null, 4)}</Text> */}
 
-					{promoDetails != null && (
-						<View
-							style={{
-								display: "flex",
-								justifyContent: "center",
-								alignItems: "center",
-							}}
-						>
-							<View style={{ marginVertical: 10 }}>
-								<InputText
-									title={"Enter promo code"}
-									name={"promo"}
-									handleChange={handleChange}
-									value={promo}
-								/>
-								<Text>
-									Don't remember.{" "}
-									<Text
-										style={{ color: "#000080" }}
-										onPress={() => setPromo(promoDetails.promo)}
-									>
-										Let us Fill
-									</Text>{" "}
-								</Text>
-							</View>
-							<Button
-								mode="contained"
-								buttonColor="#000000"
-								textColor="#ffffff"
-								style={{
-									borderRadius: 0,
-									width: Sizes.width - 50,
-									height: 55,
-									display: "flex",
-									justifyContent: "center",
-									alignItems: "center",
-								}}
-								onPress={handlePromo}
-							>
-								Apply Promo code
-							</Button>
-						</View>
-					)}
-					<Paystack
-						ref={paystackWebViewRef}
-						paystackKey="pk_test_05df482be1271f8b2be1b1aeb9faa56f413b3756"
-						billingEmail="trotric@cleantask.co.za"
-						billingName="Trotric Mabuso"
-						// channels={JSON.stringify(["card", "bank"])}
-						amount={"100.00"}
-						currency="ZAR"
-						// refNumber={"ref-" + Math.floor(Math.random() * 1000000000 + 1)}
-						onCancel={(e) => {
-							// handle response here
-							alert("cancelled");
-						}}
-						onSuccess={(res) => {
-							// handle response here
-							alert("success");
-							console.log(res);
-						}}
-					/>
-					{choice === "visa" ? (
-						<View>
-							<TouchableOpacity
-								onPress={() => paystackWebViewRef.current.startTransaction()}
-							>
-								<View>
-									<LinearGradient
-										colors={["#F9F6EE", "#EDEADE"]}
+					{loading ? (
+						<ActivityIndicator size={50} style={{ marginTop: 50 }} />
+					) : (
+						<View style={styles.wrapper}>
+							<Text style={styles.title}>Payment details</Text>
+							<View>
+								<TouchableOpacity
+									style={{
+										display: "flex",
+										flexDirection: "row",
+										alignItems: "center",
+										justifyContent: "space-between",
+										marginTop: 20,
+										borderRadius: 10,
+										backgroundColor: "white",
+										paddingLeft: 10,
+									}}
+									onPress={() => {
+										setAuthCode("");
+										setChoice("cash");
+									}}
+								>
+									<View
 										style={{
-											marginTop: 10,
 											display: "flex",
+											flexDirection: "row",
+											gap: 10,
 											justifyContent: "center",
 											alignItems: "center",
+										}}
+									>
+										<Image source={require("../../../assets/cash.png")} />
+										<Text>Cash</Text>
+									</View>
+									{choice === "cash" ? (
+										<IconButton icon={"radiobox-marked"} />
+									) : (
+										<IconButton icon={"radiobox-blank"} />
+									)}
+								</TouchableOpacity>
+								{cards &&
+									cards.length > 0 &&
+									cards.map((card) => (
+										<TouchableOpacity
+											style={{
+												display: "flex",
+												flexDirection: "row",
+												alignItems: "center",
+												justifyContent: "space-between",
+												marginTop: 20,
+												borderRadius: 10,
+												backgroundColor: "white",
+												paddingLeft: 10,
+											}}
+											onPress={() => {
+												setAuthCode(card.authorization_code);
+												setPayEmail(card.email);
+												setChoice("visa");
+											}}
+											key={card.authorization_code}
+										>
+											<View
+												style={{
+													display: "flex",
+													flexDirection: "row",
+													gap: 10,
+													justifyContent: "center",
+													alignItems: "center",
+												}}
+											>
+												<Image
+													source={require("../../../assets/credit_card.png")}
+													style={{ width: 30, height: 20 }}
+												/>
+												<Text
+													style={{
+														fontWeight: "600",
+														fontSize: 20,
+													}}
+												>
+													....
+												</Text>
+												<Text>{card.last4}</Text>
+											</View>
+											{choice === "visa" &&
+											authCode === card.authorization_code ? (
+												<IconButton icon={"radiobox-marked"} />
+											) : (
+												<IconButton icon={"radiobox-blank"} />
+											)}
+										</TouchableOpacity>
+									))}
+
+								<TouchableOpacity
+									style={{
+										display: "flex",
+										flexDirection: "row",
+										alignItems: "center",
+										justifyContent: "space-between",
+										marginTop: 20,
+										borderRadius: 10,
+										backgroundColor: "white",
+										paddingLeft: 10,
+									}}
+									onPress={() => {
+										setAuthCode("");
+										setPayEmail(state.user.email);
+										setChoice("new");
+									}}
+								>
+									<View
+										style={{
+											display: "flex",
 											flexDirection: "row",
-											paddingVertical: 10,
+											gap: 10,
+											justifyContent: "center",
+											alignItems: "center",
 										}}
 									>
 										<Image
-											source={require("../../../assets/paystack_btn.png")}
-											alt="paystack"
-											style={{ width: 150, height: 40 }}
+											source={require("../../../assets/new_card.png")}
+											style={{ width: 30, height: 20 }}
 										/>
-									</LinearGradient>
+										<Text>New Card</Text>
+									</View>
+									{choice === "new" ? (
+										<IconButton icon={"radiobox-marked"} />
+									) : (
+										<IconButton icon={"radiobox-blank"} />
+									)}
+								</TouchableOpacity>
+							</View>
+
+							{promoDetails != null && (
+								<View
+									style={{
+										display: "flex",
+										justifyContent: "center",
+										alignItems: "center",
+									}}
+								>
+									<View style={{ marginVertical: 10 }}>
+										<InputText
+											title={"Enter promo code"}
+											name={"promo"}
+											handleChange={handleChange}
+											value={promo}
+										/>
+										<Text>
+											Don't remember.{" "}
+											<Text
+												style={{ color: "#000080" }}
+												onPress={() => setPromo(promoDetails.promo)}
+											>
+												Let us Fill
+											</Text>{" "}
+										</Text>
+										<TouchableOpacity onPress={handlePromo}>
+											<LinearGradient
+												colors={["white", "gray"]}
+												style={{
+													marginTop: 10,
+													display: "flex",
+													justifyContent: "center",
+													alignItems: "center",
+													flexDirection: "row",
+													paddingVertical: 10,
+												}}
+											>
+												<Text
+													style={{
+														color: "#253b80",
+														fontStyle: "normal",
+														fontSize: 17,
+														fontWeight: "bold",
+													}}
+												>
+													Apply{" "}
+												</Text>
+												<Text
+													style={{
+														color: "#179bd7",
+														fontStyle: "italic",
+														fontSize: 17,
+														fontWeight: "bold",
+													}}
+												>
+													Promo
+												</Text>
+											</LinearGradient>
+										</TouchableOpacity>
+									</View>
 								</View>
+							)}
+							{(choice === "visa" || choice === "new") && (
+								<InputText
+									title={"Billing Email"}
+									name={"payEmail"}
+									handleChange={handleChange}
+									value={payEmail}
+								/>
+							)}
+							<TouchableOpacity
+								style={{
+									marginTop: 20,
+									display: "flex",
+									justifyContent: "center",
+									alignItems: "center",
+									flexDirection: "row",
+									paddingVertical: 10,
+									backgroundColor: "#000000",
+								}}
+								onPress={handleMakeBooking}
+							>
+								<Text
+									style={{
+										color: "#fff",
+										fontStyle: "normal",
+										fontSize: 17,
+										fontWeight: "bold",
+									}}
+								>
+									Make Booking{" "}
+								</Text>
+								<Text
+									style={{
+										color: "#fff",
+										fontStyle: "italic",
+										fontSize: 17,
+										fontWeight: "bold",
+									}}
+								>
+									(R{totalCost})
+								</Text>
 							</TouchableOpacity>
+							<Modal visible={!!checkoutUrl}>
+								<Button
+									onPress={() => setCheckoutUrl("")}
+									mode="text"
+									icon={"close-circle"}
+								>
+									Close
+								</Button>
+								<View style={{ flex: 1 }}>
+									<WebView
+										ref={webViewRef}
+										source={{ uri: checkoutUrl }}
+										onNavigationStateChange={onUrlChange}
+										onMessage={(event) => {
+											console.log(event.nativeEvent.data);
+										}}
+									/>
+								</View>
+							</Modal>
 						</View>
-					) : (
-						<Button
-							mode="contained"
-							buttonColor="#000000"
-							textColor="#ffffff"
-							style={{
-								borderRadius: 0,
-								height: 55,
-								display: "flex",
-								justifyContent: "center",
-								alignItems: "center",
-								marginTop: 20,
-							}}
-							onPress={handleCashBooking}
-						>
-							Book (R{totalCost})
-						</Button>
 					)}
 				</View>
-			)}
-		</View>
+			</ScrollView>
+		</KeyboardAvoidingView>
 	);
 };
 
@@ -336,6 +575,7 @@ const styles = StyleSheet.create({
 	},
 	wrapper: {
 		width: Sizes.width - 50,
+		paddingBottom: 20,
 	},
 	title: {
 		marginTop: 20,

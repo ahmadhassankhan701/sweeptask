@@ -7,14 +7,12 @@ import { useState } from "react";
 import { Sizes, colors } from "../../utils/theme";
 import { Button } from "react-native-paper";
 import * as Location from "expo-location";
-
-const index = ({ location, handleChange }) => {
+import { PROVIDER_GOOGLE } from "react-native-maps";
+const CustomerMap = ({ location, handleChange, setLoading }) => {
 	const mapView = useRef();
 	const initialRegion = {
-		latitude:
-			location.currentLocation.lat || 31.4809172029034,
-		longitude:
-			location.currentLocation.lng || 74.32941843381401,
+		latitude: location.currentLocation.lat || 31.4809172029034,
+		longitude: location.currentLocation.lng || 74.32941843381401,
 		latitudeDelta: 0.01,
 		longitudeDelta: 0.01,
 	};
@@ -25,51 +23,62 @@ const index = ({ location, handleChange }) => {
 		longitudeDelta: 0.01,
 	});
 	const getPermissions = async () => {
-		let { status } =
-			await Location.requestForegroundPermissionsAsync();
+		let { status } = await Location.requestForegroundPermissionsAsync();
 		if (status !== "granted") {
 			alert("Please grant location permissions");
 			return;
 		}
-		let currentLocation =
-			await Location.getCurrentPositionAsync({});
-		getAddress(
-			currentLocation.coords.latitude,
-			currentLocation.coords.longitude
-		);
+		try {
+			setLoading(true);
+			let currentLocation = await Location.getCurrentPositionAsync({});
+			getAddress(
+				currentLocation.coords.latitude,
+				currentLocation.coords.longitude
+			);
+			setLoading(false);
+		} catch (error) {
+			setLoading(false);
+			alert("Location failed");
+			return;
+		}
 	};
 	const getAddress = async (lat, lng) => {
-		const pos = { lat, lng };
-		const reverseGeocodedAddress =
-			await Location.reverseGeocodeAsync({
+		try {
+			const pos = { lat, lng };
+			const reverseGeocodedAddress = await Location.reverseGeocodeAsync({
 				longitude: lng,
 				latitude: lat,
 			});
-		const city = reverseGeocodedAddress[0]?.city;
-		const upperCaseCity = city?.toUpperCase();
-		const address =
-			reverseGeocodedAddress[0]?.name +
-			", " +
-			reverseGeocodedAddress[0]?.city +
-			", " +
-			reverseGeocodedAddress[0]?.country;
-		handleChange(address, upperCaseCity, pos);
-		setRegion({
-			...region,
-			latitude: lat,
-			longitude: lng,
-		});
+			const city = reverseGeocodedAddress[0]?.city;
+			const upperCaseCity = city?.toUpperCase();
+			const address =
+				reverseGeocodedAddress[0]?.name +
+				", " +
+				reverseGeocodedAddress[0]?.city +
+				", " +
+				reverseGeocodedAddress[0]?.country;
+			handleChange(address, upperCaseCity, pos);
+			setRegion({
+				...region,
+				latitude: lat,
+				longitude: lng,
+			});
 
-		if (mapView.current) {
-			mapView.current.animateToRegion(
-				{
-					latitude: lat,
-					longitude: lng,
-					latitudeDelta: 0.01,
-					longitudeDelta: 0.01,
-				},
-				1000
-			);
+			if (mapView.current) {
+				mapView.current.animateToRegion(
+					{
+						latitude: lat,
+						longitude: lng,
+						latitudeDelta: 0.01,
+						longitudeDelta: 0.01,
+					},
+					1000
+				);
+			}
+		} catch (error) {
+			setLoading(false);
+			alert("Location failed");
+			return;
 		}
 	};
 
@@ -114,24 +123,15 @@ const index = ({ location, handleChange }) => {
 							return;
 						}
 						let city;
-						for (
-							let i = 0;
-							i < details.address_components.length;
-							i++
-						) {
+						for (let i = 0; i < details.address_components.length; i++) {
 							for (
 								let j = 0;
-								j <
-								details.address_components[i].types.length;
+								j < details.address_components[i].types.length;
 								j++
 							) {
-								switch (
-									details.address_components[i].types[j]
-								) {
+								switch (details.address_components[i].types[j]) {
 									case "locality":
-										city =
-											details.address_components[i]
-												.long_name;
+										city = details.address_components[i].long_name;
 										break;
 								}
 							}
@@ -162,7 +162,7 @@ const index = ({ location, handleChange }) => {
 						}
 					}}
 					query={{
-						key: "AIzaSyCAukR_SsOKADb2N1YmOEyRwFGKWZTwmOo",
+						key: "AIzaSyC0s7tq52XRV37QIon2GNNp1KoD07cSugI",
 						language: "en",
 						types: "establishment",
 						radius: 8000,
@@ -196,6 +196,7 @@ const index = ({ location, handleChange }) => {
 					}}
 				/>
 				<MapView
+					provider={PROVIDER_GOOGLE}
 					ref={mapView}
 					style={styles.map}
 					initialRegion={initialRegion}
@@ -217,7 +218,7 @@ const index = ({ location, handleChange }) => {
 	);
 };
 
-export default index;
+export default CustomerMap;
 
 const styles = StyleSheet.create({
 	map: {

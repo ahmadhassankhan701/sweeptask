@@ -1,20 +1,9 @@
-import {
-	Image,
-	StyleSheet,
-	Text,
-	TouchableOpacity,
-	View,
-} from "react-native";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { useState } from "react";
 import { Sizes } from "../../../utils/theme";
-import {
-	Button,
-	Divider,
-	IconButton,
-	RadioButton,
-} from "react-native-paper";
+import { Button, Divider, IconButton, RadioButton } from "react-native-paper";
 
-const Payment = ({ navigation }) => {
+const Pay = ({ navigation }) => {
 	const [choice, setChoice] = useState("visa");
 	return (
 		<View
@@ -28,9 +17,7 @@ const Payment = ({ navigation }) => {
 				<Text style={styles.title}>Payment details</Text>
 				<View>
 					<RadioButton.Group
-						onValueChange={(newValue) =>
-							setChoice(newValue)
-						}
+						onValueChange={(newValue) => setChoice(newValue)}
 						value={choice}
 					>
 						<View
@@ -51,9 +38,7 @@ const Payment = ({ navigation }) => {
 									alignItems: "center",
 								}}
 							>
-								<Image
-									source={require("../../../assets/visa.png")}
-								/>
+								<Image source={require("../../../assets/visa.png")} />
 								<Text
 									style={{
 										fontWeight: "600",
@@ -84,9 +69,7 @@ const Payment = ({ navigation }) => {
 									alignItems: "center",
 								}}
 							>
-								<Image
-									source={require("../../../assets/cash.png")}
-								/>
+								<Image source={require("../../../assets/cash.png")} />
 								<Text>Cash</Text>
 							</View>
 							<RadioButton value="cash" color="#000000" />
@@ -128,7 +111,7 @@ const Payment = ({ navigation }) => {
 	);
 };
 
-export default Payment;
+export default Pay;
 
 const styles = StyleSheet.create({
 	wrapper: {

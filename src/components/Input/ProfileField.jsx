@@ -1,25 +1,29 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import React from "react";
 import { Sizes } from "../../utils/theme";
+import { TextInput } from "react-native-paper";
 
-const ProfileField = ({ title, val }) => {
+const ProfileField = ({ title, val, name, handleChange }) => {
 	return (
-		<View
+		<TextInput
+			label={title}
+			mode="outlined"
 			style={{
 				backgroundColor: "#FFFFFF",
 				width: Sizes.width - 20,
 				alignSelf: "center",
-				height: 70,
-				display: "flex",
-				justifyContent: "center",
-				alignItems: "flex-start",
-				paddingLeft: 20,
 				marginVertical: 10,
 			}}
-		>
-			<Text style={styles.title}>{title}</Text>
-			<Text style={styles.val}>{val}</Text>
-		</View>
+			textColor={name === "email" ? "lightgray" : "#000000"}
+			outlineColor={"transparent"}
+			activeOutlineColor={"gray"}
+			onChangeText={(text) => {
+				handleChange(name, text);
+			}}
+			value={val}
+			keyboardType={"default"}
+			disabled={name === "email" ? true : false}
+		/>
 	);
 };
 

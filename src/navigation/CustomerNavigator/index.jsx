@@ -11,6 +11,10 @@ import NewBooking from "../../screens/protected/NewBooking/NewBooking";
 import BookingPlace from "../../screens/protected/NewBooking/BookingPlace";
 import ConfirmBooking from "../../screens/protected/NewBooking/ConfirmBooking";
 import Payment from "../../screens/protected/Payment/Payment";
+import Pay from "../../screens/protected/user/Pay";
+import Chat from "../../screens/protected/Chat/Chat";
+import Success from "../../screens/protected/Result/Success";
+import Feedback from "../../screens/protected/Feedback";
 const Stack = createNativeStackNavigator();
 const index = () => {
 	return (
@@ -26,6 +30,20 @@ const index = () => {
 				})}
 			/>
 			<Stack.Screen
+				name="Success"
+				component={Success}
+				options={() => ({
+					headerShown: false,
+				})}
+			/>
+			<Stack.Screen
+				name="Feedback"
+				component={Feedback}
+				options={() => ({
+					headerShown: false,
+				})}
+			/>
+			<Stack.Screen
 				name="Search"
 				component={Search}
 				options={() => ({
@@ -35,6 +53,13 @@ const index = () => {
 			<Stack.Screen
 				name="Booking"
 				component={Booking}
+				options={() => ({
+					headerShown: false,
+				})}
+			/>
+			<Stack.Screen
+				name="Chat"
+				component={Chat}
 				options={() => ({
 					headerShown: false,
 				})}
@@ -58,6 +83,15 @@ const index = () => {
 			<Stack.Screen
 				name="Payment"
 				component={Payment}
+				options={() => ({
+					headerShown: true,
+					headerTitle: "Payment",
+					headerTitleAlign: "center",
+				})}
+			/>
+			<Stack.Screen
+				name="Pay"
+				component={Pay}
 				options={() => ({
 					headerShown: true,
 					headerTitle: "Payment",

@@ -14,7 +14,8 @@ const InputText = ({
 }) => {
 	return (
 		<TextInput
-			label={title}
+			label={""}
+			placeholder={title}
 			left={icon && <TextInput.Icon icon={icon} />}
 			right={
 				name == "password" ? (
@@ -23,9 +24,7 @@ const InputText = ({
 						icon={"eye"}
 					/>
 				) : (
-					name == "service" && (
-						<TextInput.Icon icon={"chevron-down"} />
-					)
+					name == "service" && <TextInput.Icon icon={"chevron-down"} />
 				)
 			}
 			mode="outlined"
@@ -43,9 +42,7 @@ const InputText = ({
 			multiline={name == "desc" ? true : false}
 			numberOfLines={name == "desc" ? 3 : 1}
 			value={value}
-			keyboardType={
-				name == "postal" ? "number-pad" : "default"
-			}
+			keyboardType={name == "postal" ? "number-pad" : "default"}
 			maxLength={name == "postal" ? 4 : null}
 		/>
 	);

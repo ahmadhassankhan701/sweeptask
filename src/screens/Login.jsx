@@ -5,9 +5,17 @@ import InputText from "../components/Input/InputText";
 import {
 	sendEmailVerification,
 	signInWithEmailAndPassword,
+	signOut,
 } from "firebase/auth";
 import { auth, db } from "../../firebase";
-import { doc, getDoc } from "firebase/firestore";
+import {
+	collection,
+	doc,
+	getDoc,
+	getDocs,
+	query,
+	where,
+} from "firebase/firestore";
 import { activateNotify } from "../utils/Helpers/NotifyConfig";
 import { AuthContext } from "../context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -28,62 +36,72 @@ const Login = ({ navigation }) => {
 			return;
 		}
 		setLoading(true);
+		const userRef = collection(db, "Users");
+		const q = query(userRef, where("email", "==", details.email));
+		const querySnapshot = await getDocs(q);
+		if (querySnapshot.size == 0) {
+			setLoading(false);
+			alert("User not found. Please register first");
+			return;
+		}
+		let item = {};
+		querySnapshot.forEach((doc) => {
+			item = { key: doc.id, data: doc.data() };
+		});
+		if (item.data.role !== "customer") {
+			setLoading(false);
+			alert("Please register as a customer");
+			return;
+		}
+		if (item.data.suspended) {
+			setLoading(false);
+			alert("Your account is suspended for a while. Please contact support");
+			return;
+		}
 		signInWithEmailAndPassword(auth, details.email, details.password)
 			.then((userCredential) => {
-				const users = userCredential.user;
-				handleMailVerification(users);
+				handleMailVerification(userCredential.user);
 			})
 			.catch((error) => {
-				const errorMessage = error.message;
 				setLoading(false);
-				alert(errorMessage);
+				alert(error.message);
+				console.log(error);
 			});
 	};
 	const handleMailVerification = async (users) => {
-		if (users.emailVerified == false) {
-			sendEmailVerification(auth.currentUser).then(() => {
-				alert(
-					"Verification link sent to your email. Please verify then login!"
-				);
+		try {
+			if (users.emailVerified) {
+				const docRef = doc(db, "Users", users.uid);
+				const docSnap = await getDoc(docRef);
+				const { email, name, city, suburb, suburbId } = docSnap.data();
+				const push_token = await activateNotify(docRef);
+				const user = {
+					uid: users.uid,
+					role: "customer",
+					email,
+					name,
+					city,
+					suburb,
+					suburbId,
+					push_token,
+				};
+				const stateData = { user };
+				setState({
+					user: stateData.user,
+				});
+				AsyncStorage.setItem("clean_auth", JSON.stringify(stateData));
+				navigation.navigate("Home");
+			} else {
+				// await sendEmailVerification(auth.currentUser);
+				await signOut(auth);
 				setLoading(false);
-				return false;
-			});
+				alert("Verification email sent to you. Verify then Login!");
+			}
+		} catch (error) {
+			setLoading(false);
+			alert(error.message);
+			console.log(error);
 		}
-		const docRef = doc(db, `Users`, users.uid);
-		getDoc(docRef)
-			.then((docSnap) => {
-				if (docSnap.exists()) {
-					const res = docSnap.data();
-					activateNotify(docRef)
-						.then((push_token) => {
-							const user = {
-								uid: users.uid,
-								role: "customer",
-								email: res.email,
-								name: res.name,
-								city: res.city,
-								suburb: res.suburb,
-								push_token,
-							};
-							const stateData = { user };
-							setState({
-								user: stateData.user,
-							});
-							AsyncStorage.setItem("clean_auth", JSON.stringify(stateData));
-							navigation.navigate("Home");
-						})
-						.catch((err) => {
-							console.log(err);
-						});
-				} else {
-					alert("User not found");
-					setLoading(false);
-				}
-			})
-			.catch((err) => {
-				console.log(err);
-				setLoading(false);
-			});
 	};
 	return (
 		<View
@@ -111,8 +129,8 @@ const Login = ({ navigation }) => {
 						source={require("../assets/loader.gif")}
 						style={{
 							alignSelf: "center",
-							width: 80,
-							height: 80,
+							width: 250,
+							height: 200,
 						}}
 					/>
 				</View>
@@ -145,6 +163,7 @@ const Login = ({ navigation }) => {
 				>
 					Forgot password
 				</Text>
+				<Text>{JSON.stringify(process.env.API_KEY)}</Text>
 				<Button
 					mode="contained"
 					style={{

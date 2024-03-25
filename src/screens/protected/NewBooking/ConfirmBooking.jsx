@@ -1,5 +1,10 @@
 import { StyleSheet, Text, View, Image } from "react-native";
-import { ActivityIndicator, Button, Divider } from "react-native-paper";
+import {
+	ActivityIndicator,
+	Button,
+	Divider,
+	IconButton,
+} from "react-native-paper";
 import React, { useContext, useState, useEffect } from "react";
 import { Sizes } from "../../../utils/theme";
 import {
@@ -24,6 +29,7 @@ import { sendNotification } from "../../../utils/Helpers/NotifyConfig";
 
 const ConfirmBooking = ({ route, navigation }) => {
 	const { state } = useContext(AuthContext);
+	const custName = state && state.user ? state.user.name : "";
 	const { details, extras, date, location, documentId } = route.params;
 	const [range, setRange] = useState("");
 	const [pros, setPros] = useState(null);
@@ -37,27 +43,66 @@ const ConfirmBooking = ({ route, navigation }) => {
 	useEffect(() => {
 		if (state && state.user) {
 			getPro(5);
-			getPricing(state.user.suburb, details.bedrooms, details.bathrooms);
+			getPricing(state.user.suburbId, details.bedrooms, details.bathrooms);
 		}
 	}, [state && state.user]);
-	const getPricing = async (suburb, bedrooms, bathrooms) => {
-		const pricingRef = doc(db, "Pricing", suburb);
+	const getPricing = async (suburbId, bedrooms, bathrooms) => {
+		const pricingRef = doc(db, "Pricing", suburbId);
 		const pricingSnap = await getDoc(pricingRef);
-		if (pricingSnap.exists()) {
-			const pricingArray = pricingSnap.data().pricing;
-			pricingArray.map((item) => {
-				if (item.bed == bedrooms && item.bath == bathrooms) {
-					setTotalCost({
-						cost: item.price,
-						commission: item.commission,
-					});
+		if (pricingSnap.exists() && pricingSnap.data()) {
+			const {
+				oneBedroomPrice,
+				oneBathroomPrice,
+				bedPerInc,
+				bathPerInc,
+				laundry,
+				ironing,
+				bin,
+				appCommission,
+			} = pricingSnap.data();
+			const bedCost =
+				bedrooms > 0
+					? bedrooms > 1
+						? parseInt(oneBedroomPrice) +
+						  (bedrooms - 1) *
+								((parseInt(bedPerInc) * parseInt(oneBedroomPrice)) / 100)
+						: oneBedroomPrice
+					: 0;
+			const bathCost =
+				bathrooms > 0
+					? bathrooms > 1
+						? parseInt(oneBathroomPrice) +
+						  (bathrooms - 1) *
+								((parseInt(bathPerInc) * parseInt(oneBathroomPrice)) / 100)
+						: oneBathroomPrice
+					: 0;
+			let extrasCost = 0;
+			if (Object.keys(extras).length > 0) {
+				if (extras.includes("Laundry")) {
+					extrasCost += parseInt(laundry);
 				}
+				if (extras.includes("Ironing")) {
+					extrasCost += parseInt(ironing);
+				}
+				if (extras.includes("Bin")) {
+					extrasCost += parseInt(bin);
+				}
+			}
+			const totalCost =
+				parseInt(bedCost) + parseInt(bathCost) + parseInt(extrasCost);
+			setTotalCost({
+				cost: totalCost,
+				commission: parseInt(((totalCost * appCommission) / 100).toFixed()),
 			});
 		}
 	};
 	const handleBooking = async () => {
 		if (selectedPro === null) {
 			alert("Please select a professional");
+			return;
+		}
+		if (totalCost.cost === 0) {
+			alert("Pricing not set yet. Please try again later");
 			return;
 		}
 		try {
@@ -69,6 +114,7 @@ const ConfirmBooking = ({ route, navigation }) => {
 				location,
 				cost: totalCost.cost,
 				commission: totalCost.commission,
+				customerName: custName,
 				selectedPro,
 				status: "assigned",
 				uid: state.user.uid,
@@ -193,153 +239,207 @@ const ConfirmBooking = ({ route, navigation }) => {
 						source={require("../../../assets/loader.gif")}
 						style={{
 							alignSelf: "center",
-							width: 80,
-							height: 80,
+							width: 250,
+							height: 200,
 						}}
 					/>
 				</View>
 			)}
-			<View style={styles.wrapper}>
-				<View>
-					<View style={{ marginVertical: 10 }}>
-						<Text style={styles.title}>Book confirmation</Text>
-					</View>
-					<Text style={styles.confirm}>{location.address}</Text>
-					<Text style={styles.confirm}>
-						{details.bedrooms}Bedroom, {details.bathrooms} Bathroom
-					</Text>
-					<Text style={styles.confirm}>{date.toLocaleString()}</Text>
-				</View>
-				<Divider
-					style={{
-						marginVertical: 20,
-						backgroundColor: "#B7B7B7",
-						borderWidth: 0.3,
-						borderColor: "#B7B7B7",
-					}}
-				/>
-				<View>
+			<ScrollView
+				showsVerticalScrollIndicator={false}
+				contentContainerStyle={{
+					display: "flex",
+					justifyContent: "center",
+					alignItems: "center",
+				}}
+			>
+				<View style={styles.wrapper}>
 					<View>
-						<Text
-							style={{
-								color: "#000",
-								marginBottom: 5,
-								fontSize: 15,
-							}}
-						>
-							Distance Range (kms)
-						</Text>
-						<View
-							style={{
-								display: "flex",
-								flexDirection: "row",
-								justifyContent: "space-between",
-								alignItems: "center",
-								width: Sizes.width - 50,
-								backgroundColor: "#000",
-								padding: 10,
-								borderRadius: 0,
-							}}
-						>
-							<Text style={{ color: "#fff", fontSize: 15 }}>5</Text>
-							<Slider
-								style={{ width: 250, height: 50 }}
-								minimumValue={5}
-								maximumValue={20}
-								minimumTrackTintColor="#FFFFFF"
-								maximumTrackTintColor="#FFFFFF"
-								step={2}
-								onSlidingComplete={(value) => {
-									setRange(value);
-									getPro(value);
-								}}
-							/>
-							<Text style={{ color: "#fff", fontSize: 15 }}>
-								{range == "" ? 20 : range}
-							</Text>
+						<View>
+							<Text style={styles.title}>Book confirmation</Text>
 						</View>
-					</View>
-					<View
-						style={{
-							height: 250,
-							marginTop: 5,
-						}}
-					>
-						<ScrollView
-							showsVerticalScrollIndicator={false}
-							contentContainerStyle={{
-								display: "flex",
-								justifyContent: "center",
-								alignItems: "center",
-								height: "100%",
-							}}
-						>
-							{orgLoading ? (
-								<ActivityIndicator
-									size={50}
-									animating={orgLoading}
-									color={"#000"}
-								/>
-							) : pros ? (
-								<ProList
-									pros={pros}
-									selectedPro={selectedPro}
-									setSelectedPro={setSelectedPro}
-								/>
-							) : (
-								<Text
-									style={{
-										color: "#000",
-										textAlign: "center",
-										fontSize: 14,
-									}}
-								>
-									No professional found. There may be no professional or active
-									currently.You may ask admin!
+						<Text style={styles.confirm}>{location.address}</Text>
+						<Text style={styles.confirm}>
+							App Commission: R{totalCost.commission ? totalCost.commission : 0}
+						</Text>
+						{extras.length > 0 && (
+							<View
+								style={{
+									display: "flex",
+									flexDirection: "row",
+									alignItems: "center",
+								}}
+							>
+								<Text style={{ fontWeight: "bold" }}>Extras: </Text>
+								<Text style={styles.confirm}>
+									{extras.includes("Laundry") && "Laundry "}
 								</Text>
-							)}
-						</ScrollView>
+								<Text style={styles.confirm}>
+									{extras.includes("Ironing") && "Ironing "}
+								</Text>
+								<Text style={styles.confirm}>
+									{extras.includes("Bin") && "Bin"}
+								</Text>
+							</View>
+						)}
+						<Text style={styles.confirm}>
+							{details.bedrooms}Bedroom, {details.bathrooms} Bathroom
+						</Text>
+						<Text style={styles.confirm}>
+							{new Date(date).getDate() +
+								"-" +
+								(new Date(date).getMonth() + 1) +
+								"-" +
+								new Date(date).getFullYear()}
+						</Text>
 					</View>
 					<Divider
 						style={{
-							marginVertical: 20,
+							marginVertical: 10,
 							backgroundColor: "#B7B7B7",
 							borderWidth: 0.3,
 							borderColor: "#B7B7B7",
 						}}
 					/>
-					<View
-						style={{
-							display: "flex",
-							justifyContent: "space-between",
-							alignItems: "center",
-							flexDirection: "row",
-							gap: 10,
-							width: Sizes.width - 50,
-						}}
-					>
+					<View>
 						<View>
-							<Text style={styles.title}>Total Costs</Text>
-							<Text style={styles.confirm}>R {totalCost.cost}</Text>
+							<Text
+								style={{
+									color: "#000",
+									marginBottom: 5,
+									fontSize: 15,
+								}}
+							>
+								Distance Range (kms)
+							</Text>
+							<View
+								style={{
+									display: "flex",
+									flexDirection: "row",
+									justifyContent: "space-between",
+									alignItems: "center",
+									width: Sizes.width - 50,
+									backgroundColor: "#000",
+									padding: 10,
+									borderRadius: 0,
+								}}
+							>
+								<Text style={{ color: "#fff", fontSize: 15 }}>5</Text>
+								<Slider
+									style={{ width: 250, height: 50 }}
+									minimumValue={5}
+									maximumValue={20}
+									minimumTrackTintColor="#FFFFFF"
+									maximumTrackTintColor="#FFFFFF"
+									step={2}
+									onSlidingComplete={(value) => {
+										setRange(value);
+										getPro(value);
+									}}
+								/>
+								<Text style={{ color: "#fff", fontSize: 15 }}>
+									{range == "" ? 20 : range}
+								</Text>
+							</View>
 						</View>
-						<Button
-							mode="contained"
-							buttonColor="#000000"
-							textColor="#ffffff"
+						<View
 							style={{
-								borderRadius: 0,
-								height: 55,
-								display: "flex",
-								justifyContent: "center",
-								alignItems: "center",
+								height: 200,
+								marginTop: 5,
+								flexGrow: 3,
 							}}
-							onPress={documentId ? handleProAssign : handleBooking}
 						>
-							{documentId ? "Assign" : "Book"}
-						</Button>
+							<ScrollView
+								showsVerticalScrollIndicator={false}
+								contentContainerStyle={{
+									display: "flex",
+									justifyContent: "center",
+									alignItems: "center",
+									backgroundColor: "#fff",
+									padding: 5,
+								}}
+							>
+								{orgLoading ? (
+									<ActivityIndicator
+										size={50}
+										animating={orgLoading}
+										color={"#000"}
+									/>
+								) : pros ? (
+									<View>
+										<ProList
+											pros={pros}
+											selectedPro={selectedPro}
+											setSelectedPro={setSelectedPro}
+										/>
+									</View>
+								) : (
+									<View>
+										<Image
+											source={require("../../../assets/no_prof.png")}
+											style={{
+												width: 50,
+												height: 50,
+												alignSelf: "center",
+												marginVertical: 20,
+											}}
+										/>
+										<Text
+											style={{
+												color: "gray",
+												textAlign: "left",
+												fontSize: 14,
+											}}
+										>
+											No professional found. Try changing range or professionals
+											may be inactive at this time.You may also check if we
+											provide services in this area from home screen
+										</Text>
+									</View>
+								)}
+							</ScrollView>
+						</View>
+						<Divider
+							style={{
+								marginVertical: 10,
+								backgroundColor: "#B7B7B7",
+								borderWidth: 0.3,
+								borderColor: "#B7B7B7",
+							}}
+						/>
+						<View
+							style={{
+								display: "flex",
+								justifyContent: "space-between",
+								alignItems: "center",
+								flexDirection: "row",
+								gap: 10,
+								width: Sizes.width - 50,
+							}}
+						>
+							<View>
+								<Text style={styles.title}>Total Costs</Text>
+								<Text style={styles.confirm}>R {totalCost.cost}</Text>
+							</View>
+							<Button
+								mode="contained"
+								buttonColor="#000000"
+								textColor="#ffffff"
+								style={{
+									borderRadius: 0,
+									height: 55,
+									display: "flex",
+									justifyContent: "center",
+									alignItems: "center",
+								}}
+								onPress={documentId ? handleProAssign : handleBooking}
+							>
+								Assign Booking
+							</Button>
+						</View>
 					</View>
 				</View>
-			</View>
+			</ScrollView>
 		</View>
 	);
 };
@@ -348,12 +448,12 @@ export default ConfirmBooking;
 
 const styles = StyleSheet.create({
 	container: {
-		flex: 1,
 		justifyContent: "center",
 		alignItems: "center",
 	},
 	wrapper: {
-		marginVertical: 10,
+		marginTop: 10,
+		marginBottom: 10,
 		width: Sizes.width - 50,
 	},
 	title: {

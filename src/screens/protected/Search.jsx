@@ -8,27 +8,16 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { Sizes } from "../../utils/theme";
-import InputText from "../../components/Input/InputText";
 import Footer from "../../components/Footer";
 import { FontAwesome5 } from "@expo/vector-icons";
 const Search = () => {
 	const [search, setSearch] = useState("");
 	const handleChange = async (name, value) => {};
 	return (
-		<View
-			style={{
-				flex: 1,
-				justifyContent: "space-between",
-				alignItems: "center",
-				height: Sizes.height,
-				marginTop: 50,
-			}}
-		>
+		<View style={[styles.container, { marginTop: 50 }]}>
 			<View>
 				<KeyboardAvoidingView
-					behavior={
-						Platform.OS === "ios" ? "padding" : "height"
-					}
+					behavior={Platform.OS === "ios" ? "padding" : "height"}
 				>
 					<View style={styles.wrapper}>
 						<View style={styles.searchSection}>
@@ -47,19 +36,15 @@ const Search = () => {
 								underlineColorAndroid="transparent"
 							/>
 						</View>
-						<Text style={styles.title}>
-							Popular categories
-						</Text>
-						<Text style={styles.subtitle}>
-							Home cleaning
-						</Text>
-						<Text style={styles.subtitle}>
-							Outdoor cleaning
-						</Text>
+						<Text style={styles.title}>Popular categories</Text>
+						<Text style={styles.subtitle}>Home cleaning</Text>
+						<Text style={styles.subtitle}>Outdoor cleaning</Text>
 					</View>
 				</KeyboardAvoidingView>
 			</View>
-			<Footer />
+			<View style={styles.footer}>
+				<Footer />
+			</View>
 		</View>
 	);
 };
@@ -67,6 +52,17 @@ const Search = () => {
 export default Search;
 
 const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+		justifyContent: "space-between",
+		alignItems: "center",
+		height: Sizes.height,
+	},
+	footer: {
+		height: 40,
+		marginBottom: Platform.OS === "ios" ? 20 : 0,
+		width: "100%",
+	},
 	title: {
 		fontFamily: "Inter-SemiBold",
 		fontStyle: "normal",
@@ -96,6 +92,7 @@ const styles = StyleSheet.create({
 		padding: 10,
 		borderWidth: 1,
 		width: Sizes.width - 50,
+		marginTop: 30,
 	},
 	searchIcon: {
 		paddingRight: 10,

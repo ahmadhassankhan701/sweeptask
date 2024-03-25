@@ -3,6 +3,7 @@ firebase.js
 .expo/
 dist/
 npm-debug.*
+.env*
 *.jks
 *.p8
 *.p12
@@ -10,6 +11,7 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
+src/utils/Helpers/keys.js
 
 # macOS
 .DS_Store

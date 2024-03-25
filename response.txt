@@ -1,4 +1,5 @@
 successResponse:
-failResponse:
+{"data": {"event": "successful", "transactionRef": {"message": "Approved", "redirecturl": "?trxref=T472370981522760&reference=T472370981522760", "reference": "T472370981522760", "status": "success", "trans": "3195034221", "transaction": "3195034221", "trxref": "T472370981522760"}}, "status": "success", "transactionRef": {"message": "Approved", "redirecturl": "?trxref=T472370981522760&reference=T472370981522760", "reference": "T472370981522760", "status": "success", "trans": "3195034221", "transaction": "3195034221", "trxref": "T472370981522760"}}
+declined: nothing
 cardResponse:
 bankResponse:
