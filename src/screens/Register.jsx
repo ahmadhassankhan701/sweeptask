@@ -8,8 +8,8 @@ import {
 	Image,
 	ScrollView,
 } from "react-native";
-import React, { useState } from "react";
-import { Button, TextInput } from "react-native-paper";
+import React, { useEffect, useState } from "react";
+import { Button, IconButton, TextInput } from "react-native-paper";
 import InputText from "../components/Input/InputText";
 import { Sizes } from "../utils/theme";
 import {
@@ -29,7 +29,9 @@ import {
 	setDoc,
 	where,
 } from "firebase/firestore";
+import PlacesModal from "../components/Modal/PlacesModal";
 const Register = ({ navigation }) => {
+	const [places, setPlaces] = useState([]);
 	const [details, setDetails] = useState({
 		name: "",
 		phone: "",
@@ -46,8 +48,34 @@ const Register = ({ navigation }) => {
 		email: "",
 		password: "",
 	});
+	const [placeModalVisible, setPlaceModalVisible] = useState(false);
 	const [loading, setLoading] = useState(false);
 	const [showPassword, setShowPassword] = useState(false);
+	useEffect(() => {
+		getPlaces();
+	}, []);
+	const getPlaces = async () => {
+		try {
+			setLoading(true);
+			const placesRef = collection(db, "Pricing");
+			const q = query(placesRef);
+			const querySnapshot = await getDocs(q);
+			let items = [];
+			querySnapshot.forEach((doc) => {
+				items.push({
+					key: doc.id,
+					city: doc.data().city,
+					suburb: doc.data().suburb,
+				});
+			});
+			setPlaces(items);
+			setLoading(false);
+		} catch (error) {
+			setLoading(false);
+			alert("Error getting places");
+			console.log(error);
+		}
+	};
 	const handleChange = async (name, value) => {
 		if (name === "name") {
 			setDetails({ ...details, name: value });
@@ -56,13 +84,6 @@ const Register = ({ navigation }) => {
 			} else {
 				setErrors({ ...errors, name: "" });
 			}
-		}
-		if (name === "city") {
-			setDetails({ ...details, city: value });
-		}
-		if (name === "suburb") {
-			let uniqueSuburb = value.toLowerCase().replace(/\s/g, "");
-			setDetails({ ...details, suburbId: uniqueSuburb, suburb: value });
 		}
 		if (name === "phone") {
 			setDetails({ ...details, phone: value });
@@ -176,11 +197,26 @@ const Register = ({ navigation }) => {
 			console.log(e);
 		}
 	};
+	const fillPlace = (place) => {
+		setDetails({
+			...details,
+			city: place.city,
+			suburb: place.suburb,
+			suburbId: place.key,
+		});
+		setPlaceModalVisible(false);
+	};
 	return (
 		<KeyboardAvoidingView
 			behavior={Platform.OS === "ios" ? "padding" : "height"}
 		>
 			<ScrollView showsVerticalScrollIndicator={false}>
+				<PlacesModal
+					visible={placeModalVisible}
+					setVisible={setPlaceModalVisible}
+					data={places}
+					handleAction={fillPlace}
+				/>
 				<View style={styles.container}>
 					{loading && (
 						<View
@@ -219,7 +255,7 @@ const Register = ({ navigation }) => {
 								source={require("../assets/splash.png")}
 								alt="logo"
 								style={{
-									width: 192,
+									width: 225,
 									height: 44,
 									marginBottom: 30,
 								}}
@@ -230,6 +266,7 @@ const Register = ({ navigation }) => {
 								height: "80%",
 							}}
 						>
+							{/* <Text>{JSON.stringify(places, null, 4)}</Text> */}
 							<View>
 								<InputText
 									title={"Name"}
@@ -302,39 +339,22 @@ const Register = ({ navigation }) => {
 										display: "flex",
 										alignItems: "center",
 										flexDirection: "row",
+										justifyContent: "space-between",
+										borderColor: "#000000",
+										borderWidth: 1,
+										backgroundColor: "#ffffff",
+										borderRadius: 5,
 										width: "100%",
 									}}
 								>
-									<TextInput
-										label="City"
-										mode="outlined"
-										style={{
-											backgroundColor: "#ffffff",
-											width: "50%",
-											marginVertical: 10,
-											fontSize: 12,
-											marginRight: 5,
-										}}
-										outlineColor="#000000"
-										activeOutlineColor={"#000000"}
-										selectionColor={"gray"}
-										onChangeText={(text) => handleChange("city", text)}
-										value={details.city}
-									/>
-									<TextInput
-										label="Suburb"
-										mode="outlined"
-										style={{
-											backgroundColor: "#ffffff",
-											width: "48%",
-											marginVertical: 10,
-											fontSize: 12,
-										}}
-										outlineColor="#000000"
-										activeOutlineColor={"#000000"}
-										selectionColor={"gray"}
-										onChangeText={(text) => handleChange("suburb", text)}
-										value={details.suburb}
+									<Text style={{ paddingLeft: 13, fontSize: 12 }}>
+										{details.city == "" && details.suburb == ""
+											? "Select Place"
+											: details.city + ", " + details.suburb}
+									</Text>
+									<IconButton
+										icon="chevron-down"
+										onPress={() => setPlaceModalVisible(true)}
 									/>
 								</View>
 								<InputText
@@ -410,7 +430,7 @@ export default Register;
 
 const styles = StyleSheet.create({
 	container: {
-		flex: 1,
+		height: Sizes.height,
 		alignItems: "center",
 	},
 	wrapper: {

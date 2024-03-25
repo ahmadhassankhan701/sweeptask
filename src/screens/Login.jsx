@@ -138,7 +138,7 @@ const Login = ({ navigation }) => {
 			<Image
 				source={require("../assets/splash.png")}
 				alt="logo"
-				style={{ width: 192, height: 44, marginBottom: 50 }}
+				style={{ width: 225, height: 44, marginBottom: 50 }}
 			/>
 			<View>
 				<InputText

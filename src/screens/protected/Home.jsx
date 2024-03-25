@@ -7,25 +7,33 @@ import {
 	TouchableOpacity,
 	View,
 } from "react-native";
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { Sizes, colors } from "../../utils/theme";
-import { Button, IconButton, Modal, Portal } from "react-native-paper";
+import { Button, Divider, IconButton, Modal, Portal } from "react-native-paper";
 import Footer from "../../components/Footer";
 import FindService from "../../components/Map/FindService";
 import Slider from "@react-native-community/slider";
 import { Image } from "react-native";
-import { collection, getDocs, orderBy, query, where } from "firebase/firestore";
+import {
+	collection,
+	doc,
+	getDoc,
+	getDocs,
+	orderBy,
+	query,
+	where,
+} from "firebase/firestore";
 import haversineDistance from "haversine-distance";
 import { db } from "../../../firebase";
 import * as Location from "expo-location";
-import ServiceSuccess from "../../components/Modal/ServiceSuccess";
+import { AuthContext } from "../../context/AuthContext";
+import PricingModal from "../../components/Modal/PricingModal";
 
 const Home = () => {
+	const { state } = useContext(AuthContext);
 	const [visible, setVisible] = useState(false);
-	const [placeVisible, setPlaceVisible] = useState(false);
+	const [estimate, setEstimate] = useState(null);
 	const [successVisible, setSuccessVisible] = useState(false);
-	const [range, setRange] = useState("");
-	const [choice, setChoice] = useState("current");
 	const showModal = () => setVisible(true);
 	const hideModal = () => setVisible(false);
 	const containerStyle = {
@@ -35,129 +43,95 @@ const Home = () => {
 		height: 300,
 		alignSelf: "center",
 	};
-	const placeContainerStyle = {
-		backgroundColor: "white",
-		padding: 20,
-		width: Sizes.width - 20,
-		height: 500,
-		alignSelf: "center",
-	};
 	const [detail, setDetail] = useState({
+		bedrooms: 0,
+		bathrooms: 0,
+		laundry: false,
+		ironing: false,
+		bin: false,
 		service: "",
-		postal: "",
 	});
-	const [loading] = useState(false);
-	const [location, setLocation] = useState({
-		city: "",
-		address: "",
-		currentLocation: { lat: 0, lng: 0 },
-	});
-	const handleChangeLoc = async (address, city, pos) => {
-		setLocation({
-			...location,
-			city,
-			address,
-			currentLocation: pos,
-		});
-	};
+	const [loading, setLoading] = useState(false);
 	const handleSelect = (value) => {
 		setDetail({ ...detail, service: value });
 		hideModal();
 	};
-	const handleNearby = async () => {
-		try {
-			let { status } = await Location.requestForegroundPermissionsAsync();
-			if (status !== "granted") {
-				alert("Please grant location permissions");
-				return;
-			}
-			let currentLocation = await Location.getCurrentPositionAsync({});
-			await getPro(
-				currentLocation.coords.latitude,
-				currentLocation.coords.longitude
-			);
-		} catch (error) {
-			alert("Something went wrong");
-			console.log(error);
-		}
-	};
-	const handleInputSearch = async () => {
-		if (detail.service === "" || location.address === "") {
-			alert("Please fill all fields");
+	const handleEstimate = async () => {
+		if (detail.service === "") {
+			alert("Please select a service");
 			return;
 		}
-		if (
-			location.currentLocation.lat === 0 ||
-			location.currentLocation.lng === 0
-		) {
-			alert("Please select a location");
-			return;
-		}
-		await getPro(location.currentLocation.lat, location.currentLocation.lng);
-	};
-	const getPro = async (custLat, custLng) => {
-		const pros = query(
-			collection(db, "Users"),
-			where("role", "==", "professional"),
-			orderBy("createdAt", "asc")
-		);
-		const items = [];
-		getDocs(pros)
-			.then((querySnapshot) => {
-				if (querySnapshot.size == 0) {
-					alert("No professional found");
-					return;
-				}
-				querySnapshot.forEach((doc) => {
-					items.push({ key: doc.id, ...doc.data() });
-				});
-				filterByRange(items, range, custLat, custLng);
-			})
-			.catch((err) => {
-				console.log(err);
-			});
-	};
-	const filterByRange = async (items, range, custLat, custLng) => {
 		try {
-			let kmRange = range * 1000;
-			const filteredPros = items.filter((item) => {
-				let distance = haversineDistance(
-					{
-						latitude: parseInt(item.location.lat),
-						longitude: parseInt(item.location.lng),
-					},
-					{
-						latitude: parseInt(custLat),
-						longitude: parseInt(custLng),
-					}
-				);
-				if (distance <= kmRange) {
-					return true;
+			setLoading(true);
+			const { suburbId } = state.user;
+			const pricingRef = doc(db, "Pricing", suburbId);
+			const pricingSnap = await getDoc(pricingRef);
+			if (pricingSnap.exists() && pricingSnap.data()) {
+				const {
+					oneBedroomPrice,
+					oneBathroomPrice,
+					bedPerInc,
+					bathPerInc,
+					laundry,
+					ironing,
+					bin,
+					appCommission,
+				} = pricingSnap.data();
+				const bedCost =
+					detail.bedrooms > 0
+						? detail.bedrooms > 1
+							? parseInt(oneBedroomPrice) +
+							  (detail.bedrooms - 1) *
+									((parseInt(bedPerInc) * parseInt(oneBedroomPrice)) / 100)
+							: oneBedroomPrice
+						: 0;
+				const bathCost =
+					detail.bathrooms > 0
+						? detail.bathrooms > 1
+							? parseInt(oneBathroomPrice) +
+							  (detail.bathrooms - 1) *
+									((parseInt(bathPerInc) * parseInt(oneBathroomPrice)) / 100)
+							: oneBathroomPrice
+						: 0;
+				let extrasCost = 0;
+				if (detail.laundry) {
+					extrasCost += parseInt(laundry);
 				}
-			});
-			if (Object.keys(filteredPros).length == 0) {
-				setLocation({
-					city: "",
-					address: "",
-					currentLocation: { lat: 0, lng: 0 },
+				if (detail.ironing) {
+					extrasCost += parseInt(ironing);
+				}
+				if (detail.bin) {
+					extrasCost += parseInt(bin);
+				}
+				const totalCost =
+					parseInt(bedCost) + parseInt(bathCost) + parseInt(extrasCost);
+				setEstimate({
+					bedrooms: detail.bedrooms,
+					bathrooms: detail.bathrooms,
+					laundry: detail.laundry,
+					ironing: detail.ironing,
+					bin: detail.bin,
+					cost: totalCost,
+					commission: parseInt(((totalCost * appCommission) / 100).toFixed()),
 				});
-				setPlaceVisible(false);
-				alert("No professional found. Try changing range");
-				return;
-			} else {
-				setPlaceVisible(false);
-				setRange("");
-				setDetail((detail) => ({ ...detail, service: "" }));
-				setLocation({
-					city: "",
-					address: "",
-					currentLocation: { lat: 0, lng: 0 },
+				setDetail({
+					bedrooms: 0,
+					bathrooms: 0,
+					laundry: false,
+					ironing: false,
+					bin: false,
+					service: "",
 				});
+				setLoading(false);
 				setSuccessVisible(true);
-				return;
+			} else {
+				setLoading(false);
+				alert("Could not fetch pricing details");
 			}
 		} catch (error) {
-			alert(error.message);
+			setLoading(false);
+			alert("Error getting estimate");
+			console.log(error);
 		}
 	};
 	return (
@@ -165,7 +139,11 @@ const Home = () => {
 			behavior={Platform.OS === "ios" ? "padding" : "height"}
 			style={styles.container}
 		>
-			<ServiceSuccess visible={successVisible} setVisible={setSuccessVisible} />
+			<PricingModal
+				visible={successVisible}
+				setVisible={setSuccessVisible}
+				data={estimate}
+			/>
 			{loading && (
 				<View
 					style={{
@@ -220,157 +198,234 @@ const Home = () => {
 							<IconButton icon={"chevron-down"} />
 						</View>
 					</TouchableOpacity>
+					<Text style={styles.EstimateTitle}>House Rooms</Text>
+					<Divider
+						style={{
+							marginVertical: 5,
+							backgroundColor: "#B7B7B7",
+							borderWidth: 0.3,
+							borderColor: "#B7B7B7",
+						}}
+					/>
 					<View>
-						<Text
-							style={{
-								color: "#000",
-								marginBottom: 5,
-								marginTop: 10,
-								fontSize: 15,
-							}}
-						>
-							Distance Range (kms)
-						</Text>
 						<View
 							style={{
 								display: "flex",
 								flexDirection: "row",
 								justifyContent: "space-between",
 								alignItems: "center",
-								width: Sizes.width - 50,
-								backgroundColor: "#000",
-								padding: 10,
-								borderRadius: 5,
 							}}
 						>
-							<Text style={{ color: "#fff", fontSize: 15 }}>5</Text>
-							<Slider
-								style={{ width: 250, height: 50 }}
-								minimumValue={5}
-								maximumValue={25}
-								minimumTrackTintColor="#FFFFFF"
-								maximumTrackTintColor="#FFFFFF"
-								step={2}
-								onSlidingComplete={(value) => {
-									setRange(value);
+							<Text>Bedrooms</Text>
+							<View
+								style={{
+									display: "flex",
+									flexDirection: "row",
+									alignItems: "center",
+									gap: 10,
 								}}
-							/>
-							<Text style={{ color: "#fff", fontSize: 15 }}>
-								{range == "" ? 20 : range}
-							</Text>
+							>
+								<IconButton
+									iconColor="#828282"
+									size={40}
+									icon={"minus-box"}
+									onPress={() => {
+										if (detail.bedrooms > 0) {
+											setDetail({
+												...detail,
+												bedrooms: parseInt(detail.bedrooms) - 1,
+											});
+										}
+									}}
+								/>
+								<Text
+									style={{
+										fontWeight: "700",
+										fontSize: 20,
+									}}
+								>
+									{detail.bedrooms}
+								</Text>
+								<IconButton
+									iconColor="#828282"
+									size={40}
+									icon={"plus-box"}
+									onPress={() => {
+										if (detail.bedrooms < 10) {
+											setDetail({
+												...detail,
+												bedrooms: parseInt(detail.bedrooms) + 1,
+											});
+										}
+									}}
+								/>
+							</View>
+						</View>
+						<View
+							style={{
+								display: "flex",
+								flexDirection: "row",
+								justifyContent: "space-between",
+								alignItems: "center",
+							}}
+						>
+							<Text>Bathrooms</Text>
+							<View
+								style={{
+									display: "flex",
+									flexDirection: "row",
+									alignItems: "center",
+									gap: 10,
+								}}
+							>
+								<IconButton
+									iconColor="#828282"
+									size={40}
+									icon={"minus-box"}
+									onPress={() => {
+										if (detail.bathrooms > 0) {
+											setDetail({
+												...detail,
+												bathrooms: parseInt(detail.bathrooms) - 1,
+											});
+										}
+									}}
+								/>
+								<Text
+									style={{
+										fontWeight: "700",
+										fontSize: 20,
+									}}
+								>
+									{detail.bathrooms}
+								</Text>
+								<IconButton
+									iconColor="#828282"
+									size={40}
+									icon={"plus-box"}
+									onPress={() => {
+										if (detail.bathrooms < 10) {
+											setDetail({
+												...detail,
+												bathrooms: parseInt(detail.bathrooms) + 1,
+											});
+										}
+									}}
+								/>
+							</View>
 						</View>
 					</View>
+					<Divider
+						style={{
+							marginVertical: 5,
+							backgroundColor: "#B7B7B7",
+							borderWidth: 0.3,
+							borderColor: "#B7B7B7",
+						}}
+					/>
+					<Text style={styles.EstimateTitle}>Extras</Text>
 					<View
 						style={{
 							display: "flex",
-							flexDirection: "column",
+							flexDirection: "row",
+							justifyContent: "space-around",
 							alignItems: "center",
-							marginTop: 20,
+							marginVertical: 20,
 						}}
 					>
 						<TouchableOpacity
 							onPress={() => {
-								setChoice("place");
-								setPlaceVisible(true);
+								setDetail({ ...detail, laundry: !detail.laundry });
 							}}
-							style={{ width: "100%" }}
 						>
-							<Button
-								mode={choice === "place" ? "contained" : "text"}
-								buttonColor={choice === "place" ? "black" : "white"}
-								textColor={choice === "place" ? "white" : "black"}
-								style={{
-									borderRadius: 5,
-									marginTop: 20,
-									width: "100%",
-									height: 50,
-									display: "flex",
-									justifyContent: "center",
-									alignItems: "center",
-								}}
+							<View
+								style={
+									detail.laundry
+										? {
+												borderBottomColor: "#000000",
+												borderBottomWidth: 5,
+										  }
+										: { border: "none" }
+								}
 							>
-								Search Place
-							</Button>
-						</TouchableOpacity>
-						<TouchableOpacity
-							onPress={() => {
-								setChoice("current");
-								handleNearby();
-							}}
-							style={{ width: "100%" }}
-						>
-							<Button
-								mode={choice === "current" ? "contained" : "text"}
-								buttonColor={choice === "current" ? "black" : "white"}
-								textColor={choice === "current" ? "white" : "black"}
-								style={{
-									borderRadius: 5,
-									marginTop: 20,
-									width: "100%",
-									height: 50,
-									display: "flex",
-									justifyContent: "center",
-									alignItems: "center",
-								}}
-							>
-								Search Nearby
-							</Button>
-						</TouchableOpacity>
-					</View>
-					<Portal>
-						<Modal
-							visible={placeVisible}
-							onDismiss={() => setPlaceVisible(false)}
-							contentContainerStyle={placeContainerStyle}
-						>
-							<View style={{ height: "100%" }}>
+								<Image source={require("../../assets/basket.png")} />
 								<Text
 									style={{
-										textAlign: "center",
+										fontWeight: "400",
 										fontSize: 15,
-										fontWeight: "800",
-										marginBottom: 30,
+										marginVertical: 5,
 									}}
 								>
-									Place Search
+									Laundry
 								</Text>
-								<View>
-									<FindService
-										location={location}
-										handleChange={handleChangeLoc}
-									/>
-								</View>
-								<View>
-									{location.currentLocation.lat !== 0 &&
-										location.currentLocation.lng !== 0 && (
-											<TouchableOpacity
-												style={{
-													width: "100%",
-												}}
-												onPress={handleInputSearch}
-											>
-												<Button
-													mode="contained"
-													style={{
-														backgroundColor: "#000000",
-														color: "#ffffff",
-														borderRadius: 5,
-														marginVertical: 20,
-														width: "100%",
-														height: 50,
-														display: "flex",
-														justifyContent: "center",
-														alignItems: "center",
-													}}
-												>
-													Search
-												</Button>
-											</TouchableOpacity>
-										)}
-								</View>
 							</View>
-						</Modal>
-					</Portal>
+						</TouchableOpacity>
+						<TouchableOpacity
+							onPress={() => setDetail({ ...detail, bin: !detail.bin })}
+						>
+							<View
+								style={[
+									detail.bin
+										? {
+												borderBottomColor: "#000000",
+												borderBottomWidth: 5,
+										  }
+										: { border: "none" },
+									{ alignItems: "center" },
+								]}
+							>
+								<Image
+									source={require("../../assets/bin.png")}
+									style={{ width: 50, height: 50 }}
+								/>
+								<Text
+									style={{
+										fontWeight: "400",
+										fontSize: 15,
+										marginVertical: 5,
+									}}
+								>
+									Bin
+								</Text>
+							</View>
+						</TouchableOpacity>
+						<TouchableOpacity
+							onPress={() => setDetail({ ...detail, ironing: !detail.ironing })}
+						>
+							<View
+								style={
+									detail.ironing
+										? {
+												borderBottomColor: "#000000",
+												borderBottomWidth: 5,
+										  }
+										: { border: "none" }
+								}
+							>
+								<Image source={require("../../assets/iron.png")} />
+								<Text
+									style={{
+										fontWeight: "400",
+										fontSize: 15,
+										marginVertical: 5,
+									}}
+								>
+									Ironing
+								</Text>
+							</View>
+						</TouchableOpacity>
+					</View>
+					<Button
+						mode="contained"
+						style={{
+							backgroundColor: "#000",
+							marginTop: 20,
+							borderRadius: 5,
+						}}
+						onPress={handleEstimate}
+					>
+						Get Estimate
+					</Button>
 					<Portal>
 						<Modal
 							visible={visible}
@@ -445,6 +500,14 @@ const styles = StyleSheet.create({
 		color: "#000000",
 		width: 324,
 		marginTop: 30,
+	},
+	EstimateTitle: {
+		fontFamily: "Inter-Bold",
+		fontStyle: "normal",
+		fontSize: 20,
+		lineHeight: 29,
+		color: "#000000",
+		marginTop: 20,
 	},
 	subtitle: {
 		fontFamily: "Inter-Regular",
