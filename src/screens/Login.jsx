@@ -136,7 +136,7 @@ const Login = ({ navigation }) => {
 				</View>
 			)}
 			<Image
-				source={require("../assets/splash.png")}
+				source={require("../assets/BlackLogo.png")}
 				alt="logo"
 				style={{ width: 225, height: 44, marginBottom: 50 }}
 			/>

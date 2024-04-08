@@ -7,6 +7,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:510800792581:android:3e2674e4188e108b78606c",
+        "android_client_info": {
+          "package_name": "com.ahmadlohani.cleaner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuhcTZpC9FncCS_OTxoJnWKmquGw9CSaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:510800792581:android:391e972d6b4da2f078606c",
         "android_client_info": {
           "package_name": "com.ahmadlohani.cleaning"

@@ -252,7 +252,7 @@ const Register = ({ navigation }) => {
 							}}
 						>
 							<Image
-								source={require("../assets/splash.png")}
+								source={require("../assets/BlackLogo.png")}
 								alt="logo"
 								style={{
 									width: 225,
