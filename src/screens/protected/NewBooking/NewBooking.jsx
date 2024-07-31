@@ -9,8 +9,7 @@ import {
 } from "react-native";
 import React, { useState } from "react";
 import { Sizes } from "../../../utils/theme";
-import { Button, Divider, IconButton, RadioButton } from "react-native-paper";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { Button, Divider, IconButton } from "react-native-paper";
 import RNDateTimePicker from "@react-native-community/datetimepicker";
 
 import moment from "moment";

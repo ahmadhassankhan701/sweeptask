@@ -1,43 +1,10 @@
 import { StyleSheet, Text, View } from "react-native";
 import React, { useState } from "react";
-import {
-	IconButton,
-	Modal,
-	Portal,
-	TextInput,
-} from "react-native-paper";
+import { IconButton, Modal, Portal, TextInput } from "react-native-paper";
 import { Sizes } from "../../utils/theme";
-import { addDays } from "date-fns";
 import moment from "moment";
-const days = [
-	"Sun",
-	"Mon",
-	"Tue",
-	"Wed",
-	"Thu",
-	"Fri",
-	"Sat",
-];
-const months = [
-	"Jan",
-	"Feb",
-	"March",
-	"April",
-	"May",
-	"June",
-	"July",
-	"Aug",
-	"Sep",
-	"Oct",
-	"Nov",
-	"Dec",
-];
-const DelayModal = ({
-	visible,
-	setVisible,
-	handleDelay,
-	delay,
-}) => {
+
+const DelayModal = ({ visible, setVisible, handleDelay, delay }) => {
 	const [newDate, setNewDate] = useState("");
 	const [newDisplayDate, setNewDisplayDate] = useState("");
 	const [daysError, setDaysError] = useState("");
@@ -57,9 +24,7 @@ const DelayModal = ({
 		var result = new Date(delay.prevDate);
 		result.setDate(result.getDate() + parseInt(text));
 		setNewDate(result);
-		setNewDisplayDate(
-			moment(result).format("ddd , DD MMMM YYYY")
-		);
+		setNewDisplayDate(moment(result).format("ddd , DD MMMM YYYY"));
 		if (isNaN(+text)) {
 			setDaysError("Only numbers allowed");
 		} else {
@@ -76,9 +41,7 @@ const DelayModal = ({
 				<View>
 					<Text>
 						Previous Date:{" "}
-						{moment(new Date(delay.prevDate)).format(
-							"dd , DD MMMM YYYY"
-						)}
+						{moment(new Date(delay.prevDate)).format("dd , DD MMMM YYYY")}
 					</Text>
 					<View
 						style={{
@@ -111,8 +74,7 @@ const DelayModal = ({
 					</View>
 					<Text>
 						New Date:{" "}
-						{newDisplayDate != "" &&
-							JSON.stringify(newDisplayDate, null, 4)}
+						{newDisplayDate != "" && JSON.stringify(newDisplayDate, null, 4)}
 					</Text>
 					<View
 						style={{

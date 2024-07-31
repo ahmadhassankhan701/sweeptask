@@ -6,7 +6,7 @@ import {
 	Image,
 	Platform,
 } from "react-native";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Sizes } from "../../utils/theme";
 import Footer from "../../components/Footer";
 import {

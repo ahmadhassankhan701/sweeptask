@@ -53,7 +53,6 @@ const NewBooking = ({
 			booking.key,
 			booking.uid,
 			booking.selectedPro.push_token,
-			booking.selectedPro.proId,
 			booking.payData.discountedAmount
 		);
 	};

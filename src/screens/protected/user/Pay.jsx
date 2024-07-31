@@ -1,7 +1,7 @@
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import React, { useState } from "react";
 import { Sizes } from "../../../utils/theme";
-import { Button, Divider, IconButton, RadioButton } from "react-native-paper";
+import { Divider, IconButton, RadioButton } from "react-native-paper";
 
 const Pay = ({ navigation }) => {
 	const [choice, setChoice] = useState("visa");

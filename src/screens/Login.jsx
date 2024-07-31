@@ -2,11 +2,7 @@ import { StyleSheet, Text, TouchableOpacity, View, Image } from "react-native";
 import React, { useContext, useState } from "react";
 import { Button } from "react-native-paper";
 import InputText from "../components/Input/InputText";
-import {
-	sendEmailVerification,
-	signInWithEmailAndPassword,
-	signOut,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { auth, db } from "../../firebase";
 import {
 	collection,

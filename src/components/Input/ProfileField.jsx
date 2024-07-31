@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { StyleSheet } from "react-native";
 import React from "react";
 import { Sizes } from "../../utils/theme";
 import { TextInput } from "react-native-paper";

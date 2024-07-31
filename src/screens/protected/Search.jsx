@@ -6,16 +6,12 @@ import {
 	Platform,
 	TextInput,
 } from "react-native";
-import React, { useContext, useState } from "react";
-import { AuthContext } from "../../context/AuthContext";
+import React, { useState } from "react";
 import { Sizes } from "../../utils/theme";
 import Footer from "../../components/Footer";
 import { FontAwesome5 } from "@expo/vector-icons";
-import { sendNotification } from "../../utils/Helpers/NotifyConfig";
+
 const Search = () => {
-	const { state } = useContext(AuthContext);
-	const token =
-		"cEqE-wwbRPWpr-DFdOvI4K:APA91bF0uC0_ARLvvTnbQIGMr-87YN3esJx9aXlj978bwmwoGrGRYjRbg8C6RPK1SEofViUCkNtoLy-Tb1lrozCDTwTm8SH0ZXMzl4qudLAq67_pw0vMlu1HOfL3Dhe-hSb54al7P9ha";
 	const [search, setSearch] = useState("");
 	const handleChange = async (name, value) => {};
 	return (
@@ -44,18 +40,6 @@ const Search = () => {
 						<Text style={styles.title}>Popular categories</Text>
 						<Text style={styles.subtitle}>Home cleaning</Text>
 						<Text style={styles.subtitle}>Outdoor cleaning</Text>
-						<Text
-							style={styles.subtitle}
-							onPress={() =>
-								sendNotification(
-									token,
-									"Test title tile",
-									"test body in the meantine"
-								)
-							}
-						>
-							Send Notification
-						</Text>
 					</View>
 				</KeyboardAvoidingView>
 			</View>

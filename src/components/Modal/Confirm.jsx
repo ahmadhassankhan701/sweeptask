@@ -1,13 +1,6 @@
 import { StyleSheet, Text } from "react-native";
 import React from "react";
-import {
-	Button,
-	Dialog,
-	Divider,
-	IconButton,
-	Portal,
-} from "react-native-paper";
-import { colors } from "../../utils/theme";
+import { Button, Dialog, Divider, Portal } from "react-native-paper";
 import { View } from "react-native";
 
 const Confirm = ({
@@ -44,10 +37,7 @@ const Confirm = ({
 					{title}
 				</Dialog.Title>
 				<Dialog.Content>
-					<Text
-						style={{ color: "#fff" }}
-						variant="bodyMedium"
-					>
+					<Text style={{ color: "#fff" }} variant="bodyMedium">
 						{subtitle}
 					</Text>
 				</Dialog.Content>

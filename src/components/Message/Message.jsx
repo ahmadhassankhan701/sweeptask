@@ -1,11 +1,4 @@
-import {
-	StyleSheet,
-	Text,
-	View,
-	Image,
-	TouchableOpacity,
-	Platform,
-} from "react-native";
+import { StyleSheet, Text, View, Image, TouchableOpacity } from "react-native";
 import React, { useContext } from "react";
 import { Avatar } from "react-native-paper";
 import { AuthContext } from "../../context/AuthContext";

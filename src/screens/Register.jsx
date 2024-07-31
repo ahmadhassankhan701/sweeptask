@@ -15,20 +15,10 @@ import { Sizes } from "../utils/theme";
 import {
 	createUserWithEmailAndPassword,
 	sendEmailVerification,
-	signInWithEmailAndPassword,
 	updateProfile,
 } from "firebase/auth";
 import { auth, db } from "../../firebase";
-import {
-	addDoc,
-	collection,
-	doc,
-	getDocs,
-	query,
-	serverTimestamp,
-	setDoc,
-	where,
-} from "firebase/firestore";
+import { collection, doc, getDocs, query, setDoc } from "firebase/firestore";
 import PlacesModal from "../components/Modal/PlacesModal";
 const Register = ({ navigation }) => {
 	const [places, setPlaces] = useState([]);

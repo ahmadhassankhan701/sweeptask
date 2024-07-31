@@ -2,14 +2,10 @@ import { StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { Avatar, Card, IconButton } from "react-native-paper";
 import { Sizes } from "../../utils/theme";
-import StarRating from "../StarRating";
 
 const ProList = ({ pros, selectedPro, setSelectedPro }) => {
 	return (
 		<View style={{ marginVertical: 2 }}>
-			{/* <Text style={{ color: "white" }}>
-				{JSON.stringify(org, null, 4)}
-			</Text> */}
 			{pros.map((pro) => (
 				<Card style={styles.card} key={pro.key}>
 					<Card.Content>

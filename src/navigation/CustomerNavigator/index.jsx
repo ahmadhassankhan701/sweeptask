@@ -1,6 +1,5 @@
 import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { IconButton, Text } from "react-native-paper";
 import Home from "../../screens/protected/Home";
 import Search from "../../screens/protected/Search";
 import Booking from "../../screens/protected/Booking";

@@ -24,7 +24,6 @@ import { db } from "../../../../firebase";
 import { AuthContext } from "../../../context/AuthContext";
 import { sendNotification } from "../../../utils/Helpers/NotifyConfig";
 import { LinearGradient } from "expo-linear-gradient";
-// import PaystackForm from "../../../components/Form/PaystackForm";
 import { WebView } from "react-native-webview";
 import {
 	createCheckout,

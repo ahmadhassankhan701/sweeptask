@@ -1,12 +1,6 @@
 import { StyleSheet, Text } from "react-native";
 import React from "react";
-import {
-	Button,
-	Dialog,
-	Divider,
-	IconButton,
-	Portal,
-} from "react-native-paper";
+import { Button, Dialog, Divider, Portal } from "react-native-paper";
 import { View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 

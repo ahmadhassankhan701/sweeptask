@@ -8,7 +8,7 @@ import {
 	View,
 } from "react-native";
 import React, { useContext, useEffect, useRef, useState } from "react";
-import { Avatar, IconButton, TextInput } from "react-native-paper";
+import { IconButton, TextInput } from "react-native-paper";
 import { Sizes } from "../../../utils/theme";
 import { AuthContext } from "../../../context/AuthContext";
 import {
@@ -16,7 +16,6 @@ import {
 	doc,
 	getDoc,
 	onSnapshot,
-	serverTimestamp,
 	setDoc,
 	updateDoc,
 } from "firebase/firestore";
@@ -28,22 +27,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { sendNotification } from "../../../utils/Helpers/NotifyConfig";
-const chatData = [
-	{
-		sender: "me",
-		text: "Hi, I am arrivedHi, I am arrivedHi, I am arrived",
-	},
-	{
-		sender: "other",
-		text: "Hi, PerfectHi, I am arrivedHi, I am arrivedHi, I am arrived",
-		images: [
-			require("../../../assets/logo.png"),
-			require("../../../assets/no_chat.png"),
-			require("../../../assets/logo.png"),
-			require("../../../assets/no_chat.png"),
-		],
-	},
-];
+
 const Chat = ({ navigation, route }) => {
 	const { state } = useContext(AuthContext);
 	const { proName, proToken, proId, proPhone } = route.params;

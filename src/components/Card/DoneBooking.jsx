@@ -1,10 +1,9 @@
 import { StyleSheet, Text, View } from "react-native";
-import React, { useState } from "react";
+import React from "react";
 import { Avatar, Button, IconButton } from "react-native-paper";
 import { Sizes } from "../../utils/theme";
 import { useNavigation } from "@react-navigation/native";
 import moment from "moment";
-import Confirm from "../Modal/Confirm";
 const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const months = [
 	"Jan",

@@ -1,10 +1,10 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import React, { useState } from "react";
 import InputText from "../../../components/Input/InputText";
 import { Sizes, colors } from "../../../utils/theme";
 import { Button, TextInput } from "react-native-paper";
 const AddCard = () => {
-	const [detail, setdetail] = useState({
+	const [detail, setDetail] = useState({
 		card: "",
 		expiry: "",
 		cvv: "",
@@ -46,9 +46,7 @@ const AddCard = () => {
 							outlineColor="#000000"
 							activeOutlineColor={"#000000"}
 							selectionColor={colors.desc}
-							onChangeText={(text) =>
-								handleChange("expiry", text)
-							}
+							onChangeText={(text) => handleChange("expiry", text)}
 							value={detail.expiry}
 						/>
 						<TextInput
@@ -63,9 +61,7 @@ const AddCard = () => {
 							outlineColor="#000000"
 							activeOutlineColor={"#000000"}
 							selectionColor={colors.desc}
-							onChangeText={(text) =>
-								handleChange("cvv", text)
-							}
+							onChangeText={(text) => handleChange("cvv", text)}
 							value={detail.cvv}
 						/>
 					</View>

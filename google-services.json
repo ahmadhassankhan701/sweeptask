@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:510800792581:android:3e2674e4188e108b78606c",
+        "mobilesdk_app_id": "1:510800792581:android:b21e06fb9f8ab74978606c",
         "android_client_info": {
-          "package_name": "com.ahmadlohani.cleaner"
+          "package_name": "com.sweeptask.android"
         }
       },
       "oauth_client": [],
@@ -26,9 +26,9 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:510800792581:android:391e972d6b4da2f078606c",
+        "mobilesdk_app_id": "1:510800792581:android:b682cb1e40e3935f78606c",
         "android_client_info": {
-          "package_name": "com.ahmadlohani.cleaning"
+          "package_name": "com.sweeptask.cleaner"
         }
       },
       "oauth_client": [],

@@ -12,14 +12,11 @@ import { Sizes } from "../../utils/theme";
 import Footer from "../../components/Footer";
 import { IconButton } from "react-native-paper";
 import {
-	and,
 	collection,
 	deleteDoc,
 	doc,
 	getDoc,
-	getDocs,
 	onSnapshot,
-	or,
 	orderBy,
 	query,
 	updateDoc,
@@ -30,10 +27,9 @@ import { AuthContext } from "../../context/AuthContext";
 import NewBooking from "../../components/Card/NewBooking";
 import { sendNotification } from "../../utils/Helpers/NotifyConfig";
 import DelayModal from "../../components/Modal/DelayModal";
-import { addDays } from "date-fns";
 import Toast from "react-native-toast-message";
 import DoneBooking from "../../components/Card/DoneBooking";
-import { handleRefund } from "../../utils/Helpers/PayFunc";
+
 const Booking = ({ navigation }) => {
 	const { state } = useContext(AuthContext);
 	const [mode, setMode] = useState("upcoming");
@@ -187,16 +183,17 @@ const Booking = ({ navigation }) => {
 			const userWalletData = userWalletSnap.data().wallet;
 			let wallet;
 			let bookingBody;
-			let penalty = discountedAmount * 0.05;
+			let penalty = parseInt(discountedAmount) * 0.05;
 			if (payChoice === "cash") {
 				if (userWalletData) {
 					await updateDoc(userWalletRef, {
-						"wallet.totalPenalty": userWalletData.totalPenalty + penalty,
+						"wallet.totalPenalty":
+							parseInt(userWalletData.totalPenalty) + parseInt(penalty),
 					});
 				} else {
 					wallet = {
 						totalSpent: 0,
-						totalPenalty: penalty,
+						totalPenalty: parseInt(penalty),
 						penaltyPaid: 0,
 						refundAmount: 0,
 						refundAmountReceived: 0,
@@ -209,16 +206,18 @@ const Booking = ({ navigation }) => {
 			} else {
 				if (userWalletData) {
 					await updateDoc(userWalletRef, {
-						"wallet.totalPenalty": userWalletData.totalPenalty + penalty,
+						"wallet.totalPenalty":
+							parseInt(userWalletData.totalPenalty) + parseInt(penalty),
 						"wallet.refundAmount":
-							userWalletData.refundAmount + discountedAmount,
+							parseInt(userWalletData.refundAmount) +
+							parseInt(discountedAmount),
 					});
 				} else {
 					wallet = {
 						totalSpent: 0,
-						totalPenalty: penalty,
+						totalPenalty: parseInt(penalty),
 						penaltyPaid: 0,
-						refundAmount: discountedAmount,
+						refundAmount: parseInt(discountedAmount),
 						refundAmountReceived: 0,
 					};
 					await updateDoc(userWalletRef, { wallet });
@@ -266,11 +265,12 @@ const Booking = ({ navigation }) => {
 			let wallet;
 			if (userWalletData) {
 				await updateDoc(userWalletRef, {
-					"wallet.totalSpent": userWalletData.totalSpent + discountedAmount,
+					"wallet.totalSpent":
+						parseInt(userWalletData.totalSpent) + parseInt(discountedAmount),
 				});
 			} else {
 				wallet = {
-					totalSpent: discountedAmount,
+					totalSpent: parseInt(discountedAmount),
 					totalPenalty: 0,
 					penaltyPaid: 0,
 					refundAmount: 0,

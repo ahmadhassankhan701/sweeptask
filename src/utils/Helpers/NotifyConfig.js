@@ -30,7 +30,7 @@ export const registerForPushNotificationsAsync = async () => {
 			return false;
 		}
 
-		token = await Notifications.getDevicePushTokenAsync({
+		token = await Notifications.getExpoPushTokenAsync({
 			projectId: Constants.expoConfig.extra.eas.projectId,
 		});
 	} else {
@@ -44,45 +44,12 @@ export const sendNotification = async (
 	notify_title,
 	notify_body
 ) => {
-	const { data } = await axios.get(
-		"https://us-central1-clean-task-43018.cloudfunctions.net/api/get_access_token"
-	);
 	await axios
-		.post(
-			"https://fcm.googleapis.com/v1/projects/clean-task-43018/messages:send",
-			{
-				message: {
-					token: push_token,
-					notification: {
-						title: "Breaking News",
-						body: "New news story available.",
-					},
-					data: {
-						title: "story_12345",
-						// story_id: "story_12345",
-					},
-					android: {
-						notification: {
-							click_action: "TOP_STORY_ACTIVITY",
-							body: "Check out the Top Story",
-						},
-					},
-					apns: {
-						payload: {
-							aps: {
-								category: "NEW_MESSAGE_CATEGORY",
-							},
-						},
-					},
-				},
-			},
-			{
-				headers: {
-					"Content-Type": "application/json",
-					Authorization: `Bearer ${data.access_token}`,
-				},
-			}
-		)
+		.post("https://exp.host/--/api/v2/push/send", {
+			to: push_token,
+			title: notify_title,
+			body: notify_body,
+		})
 		.then(function (response) {})
 		.catch(function (error) {
 			console.log(error);

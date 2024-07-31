@@ -8,14 +8,7 @@ import {
 	View,
 } from "react-native";
 import React, { useContext, useEffect, useState } from "react";
-import {
-	ActivityIndicator,
-	Avatar,
-	Button,
-	IconButton,
-	Modal,
-	Portal,
-} from "react-native-paper";
+import { Avatar, Button, IconButton, Modal, Portal } from "react-native-paper";
 import * as ImagePicker from "expo-image-picker";
 import * as ImageManipulator from "expo-image-manipulator";
 import ProfileField from "../../../components/Input/ProfileField";
@@ -23,7 +16,7 @@ import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db, storage } from "../../../../firebase";
 import { AuthContext } from "../../../context/AuthContext";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Sizes, colors } from "../../../utils/theme";
+import { Sizes } from "../../../utils/theme";
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { Image } from "react-native";
 const Profile = ({ navigation }) => {

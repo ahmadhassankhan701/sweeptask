@@ -12,7 +12,6 @@ Notifications.setNotificationHandler({
 		shouldSetBadge: false,
 	}),
 });
-
 export default function App() {
 	const [fontsLoaded] = useFonts({
 		"Inter-Regular": require("./src/assets/font/Inter-Regular.ttf"),

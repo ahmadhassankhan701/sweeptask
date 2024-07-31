@@ -1,10 +1,5 @@
 import { StyleSheet, Text, View, Image } from "react-native";
-import {
-	ActivityIndicator,
-	Button,
-	Divider,
-	IconButton,
-} from "react-native-paper";
+import { ActivityIndicator, Button, Divider } from "react-native-paper";
 import React, { useContext, useState, useEffect } from "react";
 import { Sizes } from "../../../utils/theme";
 import {
