@@ -11,6 +11,7 @@ npm-debug.*
 *.orig.*
 web-build/
 clean-task-43018-firebase-adminsdk-4uphp-39e9aa3ac5.json
+google-services.json
 # macOS
 .DS_Store
 
